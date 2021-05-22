@@ -56,41 +56,9 @@ def parse(opt_path, root_path):
         Loader, _ = ordered_yaml()
         opt = yaml.load(f, Loader=Loader)
 
-    # opt['is_train'] = is_train
-
-    # datasets
-#    for dataset in opt['datasets'].items():
-#        # for several datasets, e.g., test_1, test_2
-#        phase = phase.split('_')[0]
-#        dataset['phase'] = phase
-        
-        
-
-    # paths
-#    for key, val in opt['path'].items():
-#        if (val is not None) and ('resume_state' in key or 'pretrain_network' in key):
-#            opt['path'][key] = osp.expanduser(val)
-
-    # if is_train:
     experiments_root = osp.join(root_path, 'experiments', opt['name'])
-#        opt['path']['experiments_root'] = experiments_root
-#        opt['path']['models'] = osp.join(experiments_root, 'models')
-#        opt['path']['training_states'] = osp.join(experiments_root, 'training_states')
-#        opt['path']['log'] = experiments_root
     opt['log'] = experiments_root
 #        opt['path']['visualization'] = osp.join(experiments_root, 'visualization')
-
-        # change some options for debug mode
-#        if 'debug' in opt['name']:
-#            if 'val' in opt:
-#                opt['val']['val_freq'] = 8
-#            opt['logger']['print_freq'] = 1
-#            opt['logger']['save_checkpoint_freq'] = 8
-    # else:  # test
-    #     results_root = osp.join(root_path, 'results', opt['name'])
-    #     opt['path']['results_root'] = results_root
-    #     opt['path']['log'] = results_root
-#        opt['path']['visualization'] = osp.join(results_root, 'visualization')
 
     return opt
 
@@ -116,13 +84,12 @@ def parse_options(root_path, is_train=True):
     parser = argparse.ArgumentParser()
     parser.add_argument('-opt', type=str, required=True, help='Path to option YAML file.')
     args = parser.parse_args()
-    opt = parse(args.opt, root_path, is_train=is_train)
+    opt = parse(args.opt, root_path)
 
     # random seed
     seed = opt.get('manual_seed')
     if seed is None:
         seed = random.randint(1, 10000)
         opt['manual_seed'] = seed
-    # set_random_seed(seed + opt['rank'])
 
     return opt

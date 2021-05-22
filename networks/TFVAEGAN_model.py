@@ -20,8 +20,9 @@ class Encoder(nn.Module):
     def __init__(self, opt):
 
         super(Encoder,self).__init__()
-        layer_sizes = opt["res_size"]
-        latent_size = opt["latent_dim"]
+        layer_sizes = [8192, 4096]
+        layer_sizes[0] = opt["network"]["gan"]["res_size"]
+        latent_size = opt["network"]["gan"]["latent_dim"]
         layer_sizes[0] += latent_size
         self.fc1=nn.Linear(layer_sizes[0], layer_sizes[-1])
         self.fc3=nn.Linear(layer_sizes[-1], latent_size*2)
@@ -45,8 +46,9 @@ class Generator(nn.Module):
 
         super(Generator,self).__init__()
 
-        layer_sizes = opt["res_size"]
-        latent_size=opt["latent_dim"]
+        layer_sizes = [4096, 8192]
+        layer_sizes[-1] = opt["network"]["gan"]["res_size"]
+        latent_size=opt["network"]["gan"]["latent_dim"]
         input_size = latent_size * 2
         self.fc1 = nn.Linear(input_size, layer_sizes[0])
         self.fc3 = nn.Linear(layer_sizes[0], layer_sizes[1])
@@ -75,8 +77,8 @@ class Generator(nn.Module):
 class Discriminator_D1(nn.Module):
     def __init__(self, opt): 
         super(Discriminator_D1, self).__init__()
-        self.fc1 = nn.Linear(opt["res_size"] + opt["att_size"], opt["ndh"])
-        self.fc2 = nn.Linear(opt["ndh"], 1)
+        self.fc1 = nn.Linear(opt["network"]["gan"]["res_size"] + opt["network"]["gan"]["att_size"], opt["network"]["gan"]["ndh"])
+        self.fc2 = nn.Linear(opt["network"]["gan"]["ndh"], 1)
         self.lrelu = nn.LeakyReLU(0.2, True)
         self.apply(weights_init)
 
@@ -90,8 +92,8 @@ class Discriminator_D1(nn.Module):
 class Feedback(nn.Module):
     def __init__(self,opt):
         super(Feedback, self).__init__()
-        self.fc1 = nn.Linear(opt["ngh"], opt["ngh"])
-        self.fc2 = nn.Linear(opt["ngh"], opt["ngh"])
+        self.fc1 = nn.Linear(opt["network"]["gan"]["ngh"], opt["network"]["gan"]["ngh"])
+        self.fc2 = nn.Linear(opt["network"]["gan"]["ngh"], opt["network"]["gan"]["ngh"])
         self.lrelu = nn.LeakyReLU(0.2, True)
         self.apply(weights_init)
     def forward(self,x):
@@ -104,8 +106,8 @@ class AttDec(nn.Module):
     def __init__(self, opt, att_size):
         super(AttDec, self).__init__()
         self.embedSz = 0
-        self.fc1 = nn.Linear(opt["res_size"] + self.embedSz, opt["ngh"])
-        self.fc3 = nn.Linear(opt["ngh"], att_size)
+        self.fc1 = nn.Linear(opt["network"]["gan"]["res_size"] + self.embedSz, opt["network"]["gan"]["ngh"])
+        self.fc3 = nn.Linear(opt["network"]["gan"]["ngh"], att_size)
         self.lrelu = nn.LeakyReLU(0.2, True)
         self.hidden = None
         self.sigmoid = None

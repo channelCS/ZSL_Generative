@@ -20,7 +20,7 @@ import networks.TFVAEGAN_model as model
 import datasets.image_util as util
 import classifiers.classifier_images as classifier
 from utils.logger import *
-from utils.options import dict2str, parse_options 
+from utils.options import parse_options 
 # from config_images import opt
 
 root_path = os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir))

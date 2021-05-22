@@ -2,7 +2,7 @@ import datetime
 import logging
 import time
 import os
-from utils.options import dict2strinit_loggers
+from utils.options import dict2str
 
 # from .dist_util import get_dist_info, master_only
 
@@ -22,10 +22,10 @@ class MessageLogger():
 
     def __init__(self, opt, start_iter=1, tb_logger=None):
         self.exp_name = opt['name']
-        self.interval = opt['logger']['print_freq']
+        # self.interval = opt['logger']['print_freq']
         self.start_iter = start_iter
-        self.max_iters = opt['train']['total_iter']
-        self.use_tb_logger = opt['logger']['use_tb_logger']
+        self.max_iters = opt['train']['num_epoch']
+        # self.use_tb_logger = opt['logger']['use_tb_logger']
         self.tb_logger = tb_logger
         self.start_time = time.time()
         self.logger = get_root_logger()
@@ -80,9 +80,9 @@ def get_time_str():
     return time.strftime('%Y%m%d_%H%M%S', time.localtime())
 
 def init_loggers(opt):
-    log_file = os.path.join(opt['path']['log'], f"train_{opt['name']}_{get_time_str()}.log")
+    log_file = os.path.join(opt['log'], f"train_{opt['name']}_{get_time_str()}.log")
     logger = get_root_logger(logger_name='ZSl', log_level=logging.INFO, log_file=log_file)
-    logger.info(get_env_info())
+    # logger.info(get_env_info())
     logger.info(dict2str(opt))
 
     # initialize wandb logger before tensorboard logger to allow proper sync:
@@ -93,7 +93,7 @@ def init_loggers(opt):
 
     tb_logger = None
     # if opt['logger'].get('use_tb_logger'):
-    tb_logger = init_tb_logger(log_dir=os.path.join('tensorboard_logger', opt['name']))
+    # tb_logger = init_tb_logger(log_dir=os.path.join('tensorboard_logger', opt['name']))
     return logger, tb_logger
 
 # @master_only
