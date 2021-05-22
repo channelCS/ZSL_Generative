@@ -1,4 +1,3 @@
-#author: akshitac8
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -20,7 +19,7 @@ class Encoder(nn.Module):
     def __init__(self, opt):
 
         super(Encoder,self).__init__()
-        layer_sizes = [8192, 4096]
+        layer_sizes = opt["network"]["gan"]["layer_sizes"]
         layer_sizes[0] = opt["network"]["gan"]["res_size"]
         latent_size = opt["network"]["gan"]["latent_dim"]
         layer_sizes[0] += latent_size
@@ -46,7 +45,7 @@ class Generator(nn.Module):
 
         super(Generator,self).__init__()
 
-        layer_sizes = [4096, 8192]
+        layer_sizes = opt["network"]["decoder"]["layer_sizes"]
         layer_sizes[-1] = opt["network"]["gan"]["res_size"]
         latent_size=opt["network"]["gan"]["latent_dim"]
         input_size = latent_size * 2

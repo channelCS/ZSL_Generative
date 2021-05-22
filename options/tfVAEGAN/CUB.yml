@@ -7,11 +7,15 @@ datasets:
   name: CUB
   type: ZSLDataset
   dataroot: datasets
-  
+ 
 train:
   num_workers: 8
   batch_size: 64
   num_epoch: 300
+
+optimizer:
+  adam:
+    betas: [0.5, 0.999]
 
 network:
   gan:
@@ -22,6 +26,7 @@ network:
     res_size: 2048
     att_size: 312
     latent_dim: 312
+    layer_sizes: [8192, 4096]
     ndh: 4096
     ngh: 4096
     gamma_g: 10
@@ -32,6 +37,7 @@ network:
     noise: True
 
   decoder:
+    layer_sizes: [4096, 8192]
     lr: 0.0001
     recons_weight: 0.01
 
@@ -40,7 +46,7 @@ network:
     gzsl: True
 
   feedback:
-    lr: 0.00001 
+    lr: 0.00001
     a1: 1
     a2: 1
     feedback_loop: 2

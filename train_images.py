@@ -1,5 +1,3 @@
-#author: akshitac8
-#tf-vaegan inductive
 from __future__ import print_function
 import os
 import random
@@ -10,29 +8,41 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 import numpy as np
+import argparse
 #import functions
 import networks.TFVAEGAN_model as model
 import datasets.image_util as util
 import classifiers.classifier_images as classifier
-from utils.logger import *
-from utils.options import parse_options 
+from utils.logger import init_loggers
+from utils.options import parse 
+
+def parse_options():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-opt', type=str, required=True, help='Path to option YAML file.')
+    args = parser.parse_args()
+    opt = parse(args.opt)
+
+    return opt
 
 opt = parse_options()
 
-if opt['manual_seed'] is None:
-    opt['manual_seed'] = random.randint(1, 10000)
-print("Random Seed: ", opt['manual_seed'])
+# making directory for logger
+os.makedirs(opt['log'],exist_ok=True)
+
+# initialize loggers
+logger= init_loggers(opt)
+
+logger.info(f"Random Seed: {opt['manual_seed']}")
 random.seed(opt['manual_seed'])
 torch.manual_seed(opt['manual_seed'])
 if torch.cuda.is_available():
     cuda = True
-    print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 if cuda:
     torch.cuda.manual_seed_all(opt['manual_seed'])
 cudnn.benchmark = True
 # load data
 data = util.DATA_LOADER(opt)
-print("# of training samples: ", data.ntrain)
+logger.info(f"# of training samples: {data.ntrain}")
 
 netE = model.Encoder(opt)
 netG = model.Generator(opt)
@@ -66,15 +76,6 @@ if cuda:
     noise, input_att = noise.cuda(), input_att.cuda()
     one = one.cuda()
     mone = mone.cuda()
-
-# making directory for logger
-os.makedirs(opt['log'],exist_ok=True)
-
-# initialize loggers
-# logger, tb_logger = init_loggers(opt)
-
-# create message logger (formatted outputs)
-# msg_logger = MessageLogger(opt, 0, tb_logger) # After adding resume option, convert 0 --> current iter
 
 def loss_fn(recon_x, x, mean, log_var):
     BCE = torch.nn.functional.binary_cross_entropy(recon_x+1e-12, x.detach(),size_average=False)
@@ -122,11 +123,11 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
     return syn_feature, syn_label
 
 
-optimizer          = optim.Adam(netE.parameters(), lr=opt["network"]["gan"]["lr"])
-optimizerD         = optim.Adam(netD.parameters(), lr=opt["network"]["gan"]["lr"],betas=(0.5, 0.999))
-optimizerG         = optim.Adam(netG.parameters(), lr=opt["network"]["gan"]["lr"],betas=(0.5, 0.999))
-optimizerF         = optim.Adam(netF.parameters(), lr=opt["network"]["feedback"]["lr"], betas=(0.5, 0.999))
-optimizerDec       = optim.Adam(netDec.parameters(), lr=opt["network"]["decoder"]["lr"], betas=(0.5, 0.999))
+optimizer = optim.Adam(netE.parameters(), lr=opt["network"]["gan"]["lr"])
+optimizerD = optim.Adam(netD.parameters(), lr=opt["network"]["gan"]["lr"],betas=opt["optimizer"]["adam"]["betas"])
+optimizerG = optim.Adam(netG.parameters(), lr=opt["network"]["gan"]["lr"],betas=opt["optimizer"]["adam"]["betas"])
+optimizerF = optim.Adam(netF.parameters(), lr=opt["network"]["feedback"]["lr"], betas=opt["optimizer"]["adam"]["betas"])
+optimizerDec = optim.Adam(netDec.parameters(), lr=opt["network"]["decoder"]["lr"], betas=opt["optimizer"]["adam"]["betas"])
 
 
 def calc_gradient_penalty(netD,real_data, fake_data, input_att):
@@ -150,7 +151,7 @@ def calc_gradient_penalty(netD,real_data, fake_data, input_att):
 
 best_gzsl_acc = 0
 best_zsl_acc = 0
-# logger.info(f'Start training from epoch: {0}, iter: {0}')
+logger.info(f'Start training from epoch: {0}, iter: {0}')
 for epoch in range(0,opt["train"]["num_epoch"]):
     for loop in range(0,opt["network"]["feedback"]["feedback_loop"]):
         for i in range(0, data.ntrain, opt["train"]["batch_size"]):
@@ -258,7 +259,6 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 else:
                     fake = netG(noisev, c=input_attv)
                 criticG_fake = netD(fake,input_attv).mean()
-                
 
             G_cost = -criticG_fake
             errG += opt["network"]["gan"]["gamma_g"]*G_cost
@@ -274,8 +274,8 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 optimizerF.step()
             if opt["network"]["decoder"]["recons_weight"] > 0: # not train decoder at feedback time
                 optimizerDec.step() 
-        
-    print('[%d/%d]  Loss_D: %.4f Loss_G: %.4f, Wasserstein_dist:%.4f, vae_loss_seen:%.4f'% (epoch, opt["train"]["num_epoch"], D_cost.data[0], G_cost.data[0], Wasserstein_D.data[0],vae_loss_seen.data[0]),end=" ")
+
+    logger.info('[%d/%d]  Loss_D: %.4f Loss_G: %.4f, Wasserstein_dist:%.4f, vae_loss_seen:%.4f'% (epoch, opt["train"]["num_epoch"], D_cost.data[0], G_cost.data[0], Wasserstein_D.data[0],vae_loss_seen.data[0]))
     netG.eval()
     netDec.eval()
     netF.eval()
@@ -291,7 +291,7 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 25, opt["network"]["gan"]["syn_num"], generalized=True, netDec=netDec, dec_size=opt["network"]["gan"]["att_size"], dec_hidden_size=4096)
         if best_gzsl_acc < gzsl_cls.H:
             best_acc_seen, best_acc_unseen, best_gzsl_acc = gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H
-        print('GZSL: seen=%.4f, unseen=%.4f, h=%.4f' % (gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H),end=" ")
+        logger.info('GZSL: seen=%.4f, unseen=%.4f, h=%.4f' % (gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H))
 
     # Zero-shot learning
     # Train ZSL classifier
@@ -301,18 +301,18 @@ for epoch in range(0,opt["train"]["num_epoch"]):
     acc = zsl_cls.acc
     if best_zsl_acc < acc:
         best_zsl_acc = acc
-    print('ZSL: unseen accuracy=%.4f' % (acc))
+    logger.info('ZSL: unseen accuracy=%.4f' % (acc))
     # reset G to training mode
     netG.train()
     netDec.train()
     netF.train()
 
-# logger.info('End of training.')
+logger.info('End of training.')
 
-print('Dataset', opt["datasets"]["name"])
-print('the best ZSL unseen accuracy is', best_zsl_acc)
+logger.info(f'Dataset {opt["datasets"]["name"]}')
+logger.info(f'the best ZSL unseen accuracy is {best_zsl_acc}')
 if opt["network"]["classifier"]["gzsl"]:
-    print('Dataset', opt["datasets"]["name"])
-    print('the best GZSL seen accuracy is', best_acc_seen)
-    print('the best GZSL unseen accuracy is', best_acc_unseen)
-    print('the best GZSL H is', best_gzsl_acc)
+    logger.info(f'Dataset {opt["datasets"]["name"]}')
+    logger.info(f'the best GZSL seen accuracy is {best_acc_seen}')
+    logger.info(f'the best GZSL unseen accuracy is {best_acc_unseen}')
+    logger.info(f'the best GZSL H is {best_gzsl_acc}')

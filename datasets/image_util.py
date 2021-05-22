@@ -1,10 +1,7 @@
-#import h5py
 import numpy as np
 import scipy.io as sio
 import torch
 from sklearn import preprocessing
-# import sys
-# import pdb
 
 def weights_init(m):
     classname = m.__class__.__name__
@@ -43,12 +40,6 @@ class DATA_LOADER(object):
         self.attribute = torch.from_numpy(matcontent['att'].T).float()
         self.attribute /= self.attribute.pow(2).sum(1).sqrt().unsqueeze(1).expand(self.attribute.size(0),self.attribute.size(1))
 
-        # if not opt.validation:
-        # if opt.preprocessing:
-        # if opt.standardization:
-        #     print('standardization...')
-        #     scaler = preprocessing.StandardScaler()
-        # else:
         scaler = preprocessing.MinMaxScaler()
             
         _train_feature = scaler.fit_transform(feature[trainval_loc])
@@ -64,24 +55,8 @@ class DATA_LOADER(object):
         self.test_seen_feature = torch.from_numpy(_test_seen_feature).float() 
         self.test_seen_feature.mul_(1/mx)
         self.test_seen_label = torch.from_numpy(label[test_seen_loc]).long()
-
-        # else:
-        #     self.train_feature = torch.from_numpy(feature[trainval_loc]).float()
-        #     self.train_label = torch.from_numpy(label[trainval_loc]).long() 
-        #     self.test_unseen_feature = torch.from_numpy(feature[test_unseen_loc]).float()
-        #     self.test_unseen_label = torch.from_numpy(label[test_unseen_loc]).long() 
-        #     self.test_seen_feature = torch.from_numpy(feature[test_seen_loc]).float() 
-        #     self.test_seen_label = torch.from_numpy(label[test_seen_loc]).long()
-        
-        # else:
-        #     self.train_feature = torch.from_numpy(feature[train_loc]).float()
-        #     self.train_label = torch.from_numpy(label[train_loc]).long()
-        #     self.test_unseen_feature = torch.from_numpy(feature[val_unseen_loc]).float()
-        #     self.test_unseen_label = torch.from_numpy(label[val_unseen_loc]).long() 
-    
         self.seenclasses = torch.from_numpy(np.unique(self.train_label.numpy()))
         self.unseenclasses = torch.from_numpy(np.unique(self.test_unseen_label.numpy()))
-
 
         self.ntrain = self.train_feature.size()[0]
         self.ntest_seen = self.test_seen_feature.size()[0]
