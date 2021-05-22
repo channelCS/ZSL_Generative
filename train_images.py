@@ -10,20 +10,13 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 import numpy as np
-import math
-import sys
-# from sklearn import preprocessing
-import csv
-import argparse
 #import functions
 import networks.TFVAEGAN_model as model
 import datasets.image_util as util
 import classifiers.classifier_images as classifier
 from utils.logger import *
 from utils.options import parse_options 
-# from config_images import opt
 
-root_path = os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir))
 opt = parse_options(root_path)
 
 if opt['manual_seed'] is None:

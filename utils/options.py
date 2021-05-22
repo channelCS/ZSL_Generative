@@ -40,7 +40,7 @@ def ordered_yaml():
     return Loader, Dumper
 
 
-def parse(opt_path, root_path):
+def parse(opt_path):
     """
     Parse option file.
     
@@ -56,7 +56,7 @@ def parse(opt_path, root_path):
         Loader, _ = ordered_yaml()
         opt = yaml.load(f, Loader=Loader)
 
-    experiments_root = osp.join(root_path, 'experiments', opt['name'])
+    experiments_root = osp.join('./logs', opt['name'])
     opt['log'] = experiments_root
 #        opt['path']['visualization'] = osp.join(experiments_root, 'visualization')
 
@@ -80,11 +80,11 @@ def dict2str(opt, indent_level=1):
             msg += ' ' * (indent_level * 2) + k + ': ' + str(v) + '\n'
     return msg
 
-def parse_options(root_path, is_train=True):
+def parse_options():
     parser = argparse.ArgumentParser()
     parser.add_argument('-opt', type=str, required=True, help='Path to option YAML file.')
     args = parser.parse_args()
-    opt = parse(args.opt, root_path)
+    opt = parse(args.opt)
 
     # random seed
     seed = opt.get('manual_seed')
