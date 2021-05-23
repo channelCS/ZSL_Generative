@@ -12,18 +12,20 @@ train:
   num_workers: 8
   batch_size: 64
   num_epoch: 300
+  betas: [0.5, 0.999]
 
 network:
   gan:
-    lr: 0.01
+    lr: 0.0001
     image_embedding: res101
     class_embedding: att
-    syn_num: 100
+    syn_num: 300
     res_size: 2048
-    att_size: 1024
+    att_size: 312
     latent_dim: 312
+    layer_sizes: [2048, 4096]
     ndh: 4096
-    ngh: 1024
+    ngh: 4096
     gamma_g: 10
     gamma_d: 10
     num_class: 200
@@ -32,7 +34,8 @@ network:
     noise: True
 
   decoder:
-    lr: 0.001
+    lr: 0.0001
+    layer_sizes: [4096, 2048]
     recons_weight: 0.01
 
   classifier:
