@@ -15,6 +15,7 @@ def weights_init(m):
 
 def map_label(label, classes):
     mapped_label = torch.LongTensor(label.size())
+    # mapped_label = torch.rand(label.size())
     for i in range(classes.size(0)):
         mapped_label[label==classes[i]] = i    
 

@@ -69,8 +69,10 @@ class CLASSIFIER:
                 self.input.copy_(batch_input)
                 self.label.copy_(batch_label)
                    
-                inputv = Variable(self.input)
-                labelv = Variable(self.label)
+                # inputv = Variable(self.input)
+                # labelv = Variable(self.label)
+                inputv = torch.tensor(self.input)
+                labelv = torch.tensor(self.label)
                 output = self.model(inputv)
                 loss = self.criterion(output, labelv)
                 mean_loss += loss.data[0]
@@ -98,8 +100,10 @@ class CLASSIFIER:
                 self.input.copy_(batch_input)
                 self.label.copy_(batch_label)
                    
-                inputv = Variable(self.input)
-                labelv = Variable(self.label)
+                # inputv = Variable(self.input)
+                # labelv = Variable(self.label)
+                inputv = torch.tensor(self.input)
+                labelv = torch.tensor(self.label)
                 output = self.model(inputv)
                 loss = self.criterion(output, labelv)
                 loss.backward()
@@ -185,9 +189,11 @@ class CLASSIFIER:
         for i in range(0, ntest, self.batch_size):
             end = min(ntest, start+self.batch_size)
             if self.cuda:
-                inputX = Variable(test_X[start:end].cuda(), volatile=True)
+                # inputX = Variable(test_X[start:end].cuda(), volatile=True)
+                inputX = torch.tensor(test_X[start:end].cuda())
             else:
-                inputX = Variable(test_X[start:end], volatile=True)
+                # inputX = Variable(test_X[start:end], volatile=True)
+                inputX = torch.tensor(test_X[start:end], volatile=True)
             output = self.model(inputX) 
             _, predicted_label[start:end] = torch.max(output.data, 1)
             start = end
@@ -210,9 +216,11 @@ class CLASSIFIER:
         for i in range(0, ntest, self.batch_size):
             end = min(ntest, start+self.batch_size)
             if self.cuda:
-                inputX = Variable(test_X[start:end].cuda(), volatile=True)
+                # inputX = Variable(test_X[start:end].cuda(), volatile=True)
+                inputX = torch.tensor(test_X[start:end].cuda())
             else:
-                inputX = Variable(test_X[start:end], volatile=True)
+                # inputX = Variable(test_X[start:end], volatile=True)
+                inputX = torch.tensor(test_X[start:end], volatile=True)
             feat1 = self.netDec(inputX)
             feat2 = self.netDec.getLayersOutDet()
             new_test_X[start:end] = torch.cat([inputX,feat1,feat2],dim=1).data.cpu()

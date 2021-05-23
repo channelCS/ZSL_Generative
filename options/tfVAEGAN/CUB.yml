@@ -7,7 +7,7 @@ datasets:
   name: CUB
   type: ZSLDataset
   dataroot: datasets
- 
+
 train:
   num_workers: 8
   batch_size: 64
@@ -37,8 +37,8 @@ network:
     noise: True
 
   decoder:
-    layer_sizes: [4096, 8192]
     lr: 0.0001
+    layer_sizes: [4096, 8192]
     recons_weight: 0.01
 
   classifier:

@@ -36,7 +36,6 @@ def ordered_yaml():
     Loader.add_constructor(_mapping_tag, dict_constructor)
     return Loader, Dumper
 
-
 def parse(opt_path):
     """
     Parse option file.
@@ -58,5 +57,3 @@ def parse(opt_path):
 #        opt['path']['visualization'] = osp.join(experiments_root, 'visualization')
 
     return opt
-
-

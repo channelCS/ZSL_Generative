@@ -2,12 +2,10 @@ from __future__ import print_function
 import os
 import random
 import torch
-import torch.nn as nn
 import torch.autograd as autograd
 import torch.optim as optim
 import torch.backends.cudnn as cudnn
-from torch.autograd import Variable
-import numpy as np
+# from torch.autograd import Variable
 import argparse
 #import functions
 import networks.TFVAEGAN_model as model
@@ -37,7 +35,6 @@ random.seed(opt['manual_seed'])
 torch.manual_seed(opt['manual_seed'])
 if torch.cuda.is_available():
     cuda = True
-if cuda:
     torch.cuda.manual_seed_all(opt['manual_seed'])
 cudnn.benchmark = True
 # load data
@@ -60,9 +57,14 @@ print(netDec)
 ###########
 # Init Tensors
 input_res = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["res_size"])
-input_att = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"]) # att_size class-embedding size
+# input_res = torch.rand(opt["train"]["batch_size"], opt["network"]["gan"]["res_size"])
+input_att = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"]) # att_size 
+# input_att = torch.rand(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"]) # att_size 
+# class-embedding size
 noise = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"])
-one = torch.FloatTensor([1])
+# noise = torch.rand(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"])
+# one = torch.FloatTensor([1])
+one = torch.tensor([1])
 mone = one * -1
 ##########
 # Cuda
@@ -97,9 +99,13 @@ def WeightedL1(pred, gt):
 def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None):
     nclass = classes.size(0)
     syn_feature = torch.FloatTensor(nclass*num, opt["network"]["gan"]["res_size"])
+    # syn_feature = torch.rand(nclass*num, opt["network"]["gan"]["res_size"])
     syn_label = torch.LongTensor(nclass*num) 
+    # syn_label = torch.rand(nclass*num) 
     syn_att = torch.FloatTensor(num, opt["network"]["gan"]["att_size"])
+    # syn_att = torch.rand(num, opt["network"]["gan"]["att_size"])
     syn_noise = torch.FloatTensor(num, opt["network"]["gan"]["att_size"]) # replaced nz with att_size
+    # syn_noise = torch.rand(num, opt["network"]["gan"]["att_size"]) # replaced nz with att_size
     if cuda:
         syn_att = syn_att.cuda()
         syn_noise = syn_noise.cuda()
@@ -108,8 +114,10 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
         iclass_att = attribute[iclass]
         syn_att.copy_(iclass_att.repeat(num, 1))
         syn_noise.normal_(0, 1)
-        syn_noisev = Variable(syn_noise,volatile=True)
-        syn_attv = Variable(syn_att,volatile=True)
+        # syn_noisev = Variable(syn_noise,volatile=True)
+        syn_noisev = torch.tensor(syn_noise)
+        # syn_attv = Variable(syn_att,volatile=True)
+        syn_attv = torch.tensor(syn_att)
         fake = generator(syn_noisev,c=syn_attv)
         if netF is not None:
             dec_out = netDec(fake) # only to call the forward function of decoder
@@ -117,7 +125,8 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
             feedback_out = netF(dec_hidden_feat)
             fake = generator(syn_noisev, a1=opt["network"]["feedback"]["a2"], c=syn_attv, feedback_layers=feedback_out)
         output = fake
-        syn_feature.narrow(0, i*num, num).copy_(output.data.cpu())
+        # syn_feature.narrow(0, i*num, num).copy_(output.data.cpu())
+        syn_feature.narrow(0, i*num, num).copy_(output.detach().cpu())
         syn_label.narrow(0, i*num, num).fill_(iclass)
 
     return syn_feature, syn_label
@@ -138,8 +147,10 @@ def calc_gradient_penalty(netD,real_data, fake_data, input_att):
     interpolates = alpha * real_data + ((1 - alpha) * fake_data)
     if cuda:
         interpolates = interpolates.cuda()
-    interpolates = Variable(interpolates, requires_grad=True)
-    disc_interpolates = netD(interpolates, Variable(input_att))
+    # interpolates = Variable(interpolates, requires_grad=True)
+    interpolates = torch.tensor(interpolates, requires_grad=True)
+    # disc_interpolates = netD(interpolates, Variable(input_att))
+    disc_interpolates = netD(interpolates, torch.tensor(input_att))
     ones = torch.ones(disc_interpolates.size())
     if cuda:
         ones = ones.cuda()
@@ -166,8 +177,10 @@ for epoch in range(0,opt["train"]["num_epoch"]):
             for iter_d in range(opt["network"]["gan"]["critic_iter"]):
                 sample()
                 netD.zero_grad()          
-                input_resv = Variable(input_res)
-                input_attv = Variable(input_att)
+                # input_resv = Variable(input_res)
+                input_resv = torch.tensor(input_res)
+                # input_attv = Variable(input_att)
+                input_attv = torch.tensor(input_att)
 
                 netDec.zero_grad()
                 recons = netDec(input_resv)
@@ -181,11 +194,13 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                     means, log_var = netE(input_resv, input_attv)
                     std = torch.exp(0.5 * log_var)
                     eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
-                    eps = Variable(eps.cuda())
+                    # eps = Variable(eps.cuda())
+                    eps = torch.tensor(eps.cuda())
                     z = eps * std + means #torch.Size([64, 312])
                 else:
                     noise.normal_(0, 1)
-                    z = Variable(noise)
+                    # z = Variable(noise)
+                    z = torch.tensor(noise)
 
                 if loop == 1:
                     fake = netG(z, c=input_attv)
@@ -200,9 +215,11 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 criticD_fake = opt["network"]["gan"]["gamma_d"]*criticD_fake.mean()
                 criticD_fake.backward(one)
                 # gradient penalty
-                gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.data, input_att)
+                # gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.data, input_att)
+                gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.detach(), input_att)
                 # if opt.lambda_mult == 1.1:
-                gp_sum += gradient_penalty.data
+                # gp_sum += gradient_penalty.data
+                gp_sum += gradient_penalty.detach()
                 gradient_penalty.backward()         
                 Wasserstein_D = criticD_real - criticD_fake
                 D_cost = criticD_fake - criticD_real + gradient_penalty #add Y here and #add vae reconstruction loss
@@ -225,12 +242,15 @@ for epoch in range(0,opt["train"]["num_epoch"]):
             netE.zero_grad()
             netG.zero_grad()
             netF.zero_grad()
-            input_resv = Variable(input_res)
-            input_attv = Variable(input_att)
+            # input_resv = Variable(input_res)
+            # input_attv = Variable(input_att)
+            input_resv = torch.tensor(input_res)
+            input_attv = torch.tensor(input_att)
             means, log_var = netE(input_resv, input_attv)
             std = torch.exp(0.5 * log_var)
             eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
-            eps = Variable(eps.cuda())
+            # eps = Variable(eps.cuda())
+            eps = torch.tensor(eps.cuda())
             z = eps * std + means #torch.Size([64, 312])
             if loop == 1:
                 recon_x = netG(z, c=input_attv)
@@ -249,7 +269,8 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 fake = recon_x 
             else:
                 noise.normal_(0, 1)
-                noisev = Variable(noise)
+                # noisev = Variable(noise)
+                noisev = torch.tensor(noise)
                 if loop == 1:
                     fake = netG(noisev, c=input_attv)
                     dec_out = netDec(recon_x) #Feedback from Decoder encoded output
