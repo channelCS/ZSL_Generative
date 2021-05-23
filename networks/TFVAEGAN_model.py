@@ -20,7 +20,6 @@ class Encoder(nn.Module):
 
         super(Encoder,self).__init__()
         layer_sizes = opt["network"]["gan"]["layer_sizes"]
-        layer_sizes[0] = opt["network"]["gan"]["res_size"]
         latent_size = opt["network"]["gan"]["latent_dim"]
         layer_sizes[0] += latent_size
         self.fc1=nn.Linear(layer_sizes[0], layer_sizes[-1])
@@ -46,7 +45,6 @@ class Generator(nn.Module):
         super(Generator,self).__init__()
 
         layer_sizes = opt["network"]["decoder"]["layer_sizes"]
-        layer_sizes[-1] = opt["network"]["gan"]["res_size"]
         latent_size=opt["network"]["gan"]["latent_dim"]
         input_size = latent_size * 2
         self.fc1 = nn.Linear(input_size, layer_sizes[0])

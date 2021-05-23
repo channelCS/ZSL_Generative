@@ -124,10 +124,10 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
 
 
 optimizer = optim.Adam(netE.parameters(), lr=opt["network"]["gan"]["lr"])
-optimizerD = optim.Adam(netD.parameters(), lr=opt["network"]["gan"]["lr"],betas=opt["optimizer"]["adam"]["betas"])
-optimizerG = optim.Adam(netG.parameters(), lr=opt["network"]["gan"]["lr"],betas=opt["optimizer"]["adam"]["betas"])
-optimizerF = optim.Adam(netF.parameters(), lr=opt["network"]["feedback"]["lr"], betas=opt["optimizer"]["adam"]["betas"])
-optimizerDec = optim.Adam(netDec.parameters(), lr=opt["network"]["decoder"]["lr"], betas=opt["optimizer"]["adam"]["betas"])
+optimizerD = optim.Adam(netD.parameters(), lr=opt["network"]["gan"]["lr"],betas=opt["train"]["betas"])
+optimizerG = optim.Adam(netG.parameters(), lr=opt["network"]["gan"]["lr"],betas=opt["train"]["betas"])
+optimizerF = optim.Adam(netF.parameters(), lr=opt["network"]["feedback"]["lr"], betas=opt["train"]["betas"])
+optimizerDec = optim.Adam(netDec.parameters(), lr=opt["network"]["decoder"]["lr"], betas=opt["train"]["betas"])
 
 
 def calc_gradient_penalty(netD,real_data, fake_data, input_att):
