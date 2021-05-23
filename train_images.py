@@ -64,8 +64,8 @@ input_att = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"][
 noise = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"])
 # noise = torch.rand(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"])
 # one = torch.FloatTensor([1])
-# one = torch.tensor([1])
 one = torch.tensor(1, dtype=torch.float)
+
 mone = one * -1
 ##########
 # Cuda
@@ -99,6 +99,7 @@ def WeightedL1(pred, gt):
     
 def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None):
     nclass = classes.size(0)
+    
     syn_feature = torch.FloatTensor(nclass*num, opt["network"]["gan"]["res_size"])
     # syn_feature = torch.rand(nclass*num, opt["network"]["gan"]["res_size"])
     syn_label = torch.LongTensor(nclass*num) 
@@ -107,6 +108,7 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
     # syn_att = torch.rand(num, opt["network"]["gan"]["att_size"])
     syn_noise = torch.FloatTensor(num, opt["network"]["gan"]["att_size"]) # replaced nz with att_size
     # syn_noise = torch.rand(num, opt["network"]["gan"]["att_size"]) # replaced nz with att_size
+
     if cuda:
         syn_att = syn_att.cuda()
         syn_noise = syn_noise.cuda()
@@ -132,13 +134,11 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
 
     return syn_feature, syn_label
 
-
 optimizer = optim.Adam(netE.parameters(), lr=opt["network"]["gan"]["lr"])
 optimizerD = optim.Adam(netD.parameters(), lr=opt["network"]["gan"]["lr"],betas=opt["train"]["betas"])
 optimizerG = optim.Adam(netG.parameters(), lr=opt["network"]["gan"]["lr"],betas=opt["train"]["betas"])
 optimizerF = optim.Adam(netF.parameters(), lr=opt["network"]["feedback"]["lr"], betas=opt["train"]["betas"])
 optimizerDec = optim.Adam(netDec.parameters(), lr=opt["network"]["decoder"]["lr"], betas=opt["train"]["betas"])
-
 
 def calc_gradient_penalty(netD,real_data, fake_data, input_att):
     alpha = torch.rand(opt["train"]["batch_size"], 1)
@@ -195,8 +195,10 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                     means, log_var = netE(input_resv, input_attv)
                     std = torch.exp(0.5 * log_var)
                     eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
+
                     # eps = Variable(eps.cuda())
                     eps = eps.clone().detach().cuda()
+
                     z = eps * std + means #torch.Size([64, 312])
                 else:
                     noise.normal_(0, 1)
@@ -215,6 +217,7 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 criticD_fake = netD(fake.detach(), input_attv)
                 criticD_fake = opt["network"]["gan"]["gamma_d"]*criticD_fake.mean()
                 criticD_fake.backward(one)
+                
                 # gradient penalty
                 # gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.data, input_att)
                 gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.detach(), input_att)
@@ -250,8 +253,10 @@ for epoch in range(0,opt["train"]["num_epoch"]):
             means, log_var = netE(input_resv, input_attv)
             std = torch.exp(0.5 * log_var)
             eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
+
             # eps = Variable(eps.cuda())
             eps = eps.clone().detach().cuda()
+            
             z = eps * std + means #torch.Size([64, 312])
             if loop == 1:
                 recon_x = netG(z, c=input_attv)
@@ -298,6 +303,7 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 optimizerDec.step() 
 
     logger.info('[%d/%d]  Loss_D: %.4f Loss_G: %.4f, Wasserstein_dist:%.4f, vae_loss_seen:%.4f'% (epoch, opt["train"]["num_epoch"], D_cost.data, G_cost.data, Wasserstein_D.data,vae_loss_seen.data))
+
     netG.eval()
     netDec.eval()
     netF.eval()
