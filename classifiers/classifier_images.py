@@ -1,7 +1,7 @@
 #author: akshitac8
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
+# from torch.autograd import Variable
 import torch.optim as optim
 import numpy as np
 import datasets.image_util as util
@@ -71,11 +71,11 @@ class CLASSIFIER:
                    
                 # inputv = Variable(self.input)
                 # labelv = Variable(self.label)
-                inputv = torch.tensor(self.input)
-                labelv = torch.tensor(self.label)
+                inputv = self.input.clone().detach()
+                labelv = self.label.clone().detach()
                 output = self.model(inputv)
                 loss = self.criterion(output, labelv)
-                mean_loss += loss.data[0]
+                mean_loss += loss.data
                 loss.backward()
                 self.optimizer.step()
                 #print('Training classifier loss= ', loss.data[0])
@@ -102,8 +102,8 @@ class CLASSIFIER:
                    
                 # inputv = Variable(self.input)
                 # labelv = Variable(self.label)
-                inputv = torch.tensor(self.input)
-                labelv = torch.tensor(self.label)
+                inputv = self.input.clone().detach()
+                labelv = self.label.clone().detach()
                 output = self.model(inputv)
                 loss = self.criterion(output, labelv)
                 loss.backward()
@@ -163,9 +163,11 @@ class CLASSIFIER:
         for i in range(0, ntest, self.batch_size):
             end = min(ntest, start+self.batch_size)
             if self.cuda:
-                inputX = Variable(test_X[start:end].cuda(), volatile=True)
+                # inputX = Variable(test_X[start:end].cuda(), volatile=True)
+                inputX = test_X[start:end].clone().detach().cuda()
             else:
-                inputX = Variable(test_X[start:end], volatile=True)
+                # inputX = Variable(test_X[start:end], volatile=True)
+                inputX = test_X[start:end].clone().detach()
             output = self.model(inputX)  
             _, predicted_label[start:end] = torch.max(output.data, 1)
             start = end
@@ -190,10 +192,10 @@ class CLASSIFIER:
             end = min(ntest, start+self.batch_size)
             if self.cuda:
                 # inputX = Variable(test_X[start:end].cuda(), volatile=True)
-                inputX = torch.tensor(test_X[start:end].cuda())
+                inputX = test_X[start:end].clone().detach().cuda()
             else:
                 # inputX = Variable(test_X[start:end], volatile=True)
-                inputX = torch.tensor(test_X[start:end], volatile=True)
+                inputX = test_X[start:end].clone().detach()
             output = self.model(inputX) 
             _, predicted_label[start:end] = torch.max(output.data, 1)
             start = end
@@ -217,10 +219,10 @@ class CLASSIFIER:
             end = min(ntest, start+self.batch_size)
             if self.cuda:
                 # inputX = Variable(test_X[start:end].cuda(), volatile=True)
-                inputX = torch.tensor(test_X[start:end].cuda())
+                inputX = test_X[start:end].clone().detach().cuda()
             else:
                 # inputX = Variable(test_X[start:end], volatile=True)
-                inputX = torch.tensor(test_X[start:end], volatile=True)
+                inputX = test_X[start:end].clone().detach()
             feat1 = self.netDec(inputX)
             feat2 = self.netDec.getLayersOutDet()
             new_test_X[start:end] = torch.cat([inputX,feat1,feat2],dim=1).data.cpu()
