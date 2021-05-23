@@ -37,7 +37,6 @@ random.seed(opt['manual_seed'])
 torch.manual_seed(opt['manual_seed'])
 if torch.cuda.is_available():
     cuda = True
-if cuda:
     torch.cuda.manual_seed_all(opt['manual_seed'])
 cudnn.benchmark = True
 # load data
