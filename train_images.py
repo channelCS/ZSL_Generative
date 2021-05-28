@@ -118,9 +118,9 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
         syn_att.copy_(iclass_att.repeat(num, 1))
         syn_noise.normal_(0, 1)
         # syn_noisev = Variable(syn_noise,volatile=True)
-        syn_noisev = syn_noise.clone().detach()
+        syn_noisev = syn_noise.detach()
         # syn_attv = Variable(syn_att,volatile=True)
-        syn_attv = syn_att.clone().detach()
+        syn_attv = syn_att.detach()
         fake = generator(syn_noisev,c=syn_attv)
         if netF is not None:
             dec_out = netDec(fake) # only to call the forward function of decoder
@@ -149,9 +149,9 @@ def calc_gradient_penalty(netD,real_data, fake_data, input_att):
     if cuda:
         interpolates = interpolates.cuda()
     # interpolates = Variable(interpolates, requires_grad=True)
-    interpolates = interpolates.clone().detach().requires_grad_(True)
+    interpolates = interpolates.detach().requires_grad_(True)
     # disc_interpolates = netD(interpolates, Variable(input_att))
-    disc_interpolates = netD(interpolates, input_att.clone().detach())
+    disc_interpolates = netD(interpolates, input_att.detach())
     ones = torch.ones(disc_interpolates.size())
     if cuda:
         ones = ones.cuda()
@@ -179,9 +179,9 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 sample()
                 netD.zero_grad()          
                 # input_resv = Variable(input_res)
-                input_resv = input_res.clone().detach()
+                input_resv = input_res.detach()
                 # input_attv = Variable(input_att)
-                input_attv = input_att.clone().detach()
+                input_attv = input_att.detach()
 
                 netDec.zero_grad()
                 recons = netDec(input_resv)
@@ -197,13 +197,13 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                     eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
 
                     # eps = Variable(eps.cuda())
-                    eps = eps.clone().detach().cuda()
+                    eps = eps.detach().cuda()
 
                     z = eps * std + means #torch.Size([64, 312])
                 else:
                     noise.normal_(0, 1)
                     # z = Variable(noise)
-                    z = noise.clone().detach()
+                    z = noise.detach()
 
                 if loop == 1:
                     fake = netG(z, c=input_attv)
@@ -248,14 +248,14 @@ for epoch in range(0,opt["train"]["num_epoch"]):
             netF.zero_grad()
             # input_resv = Variable(input_res)
             # input_attv = Variable(input_att)
-            input_resv = input_res.clone().detach()
-            input_attv = input_att.clone().detach()
+            input_resv = input_res.detach()
+            input_attv = input_att.detach()
             means, log_var = netE(input_resv, input_attv)
             std = torch.exp(0.5 * log_var)
             eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
 
             # eps = Variable(eps.cuda())
-            eps = eps.clone().detach().cuda()
+            eps = eps.detach().cuda()
             
             z = eps * std + means #torch.Size([64, 312])
             if loop == 1:
@@ -276,7 +276,7 @@ for epoch in range(0,opt["train"]["num_epoch"]):
             else:
                 noise.normal_(0, 1)
                 # noisev = Variable(noise)
-                noisev = noise.clone().detach()
+                noisev = noise.detach()
                 if loop == 1:
                     fake = netG(noisev, c=input_attv)
                     dec_out = netDec(recon_x) #Feedback from Decoder encoded output
@@ -302,11 +302,12 @@ for epoch in range(0,opt["train"]["num_epoch"]):
             if opt["network"]["decoder"]["recons_weight"] > 0: # not train decoder at feedback time
                 optimizerDec.step() 
 
-    logger.info('[%d/%d]  Loss_D: %.4f Loss_G: %.4f, Wasserstein_dist:%.4f, vae_loss_seen:%.4f'% (epoch, opt["train"]["num_epoch"], D_cost.data, G_cost.data, Wasserstein_D.data,vae_loss_seen.data))
+    logger.info('[%d/%d]  Loss_D: %.4f Loss_G: %.4f, Wasserstein_dist:%.4f, vae_loss_seen:%.4f'% (epoch, opt["train"]["num_epoch"], D_cost.item(), G_cost.item(), Wasserstein_D.item(),vae_loss_seen.item()))
 
     netG.eval()
     netDec.eval()
     netF.eval()
+
     syn_feature, syn_label = generate_syn_feature(netG,data.unseenclasses, data.attribute, opt["network"]["gan"]["syn_num"],netF=netF,netDec=netDec)
     # Generalized zero-shot learning
     if opt["network"]["classifier"]["gzsl"]:   
@@ -330,6 +331,7 @@ for epoch in range(0,opt["train"]["num_epoch"]):
     if best_zsl_acc < acc:
         best_zsl_acc = acc
     logger.info('ZSL: unseen accuracy=%.4f' % (acc))
+
     # reset G to training mode
     netG.train()
     netDec.train()
