@@ -150,6 +150,7 @@ def calc_gradient_penalty(netD,real_data, fake_data, input_att):
 
 best_gzsl_acc = 0
 best_zsl_acc = 0
+lambda_gan = opt["network"]["gan"]["lambda"]
 logger.info(f'Start training from epoch: {0}, iter: {0}')
 for epoch in range(0,opt["train"]["num_epoch"]):
     for loop in range(0,opt["network"]["feedback"]["feedback_loop"]):
@@ -207,11 +208,11 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 D_cost = criticD_fake - criticD_real + gradient_penalty #add Y here and #add vae reconstruction loss
                 optimizerD.step()
 
-            gp_sum /= (opt["network"]["gan"]["gamma_d"]*opt["network"]["gan"]["lambda"]*opt["network"]["gan"]["critic_iter"])
+            gp_sum /= (opt["network"]["gan"]["gamma_d"] * lambda_gan * opt["network"]["gan"]["critic_iter"])
             if (gp_sum > 1.05).sum() > 0:
-                opt["network"]["gan"]["lambda"] *= 1.1
+                lambda_gan *= 1.1
             elif (gp_sum < 1.001).sum() > 0:
-                opt["network"]["gan"]["lambda"] /= 1.1
+                lambda_gan /= 1.1
 
             #############Generator training ##############
             # Train Generator and Decoder
