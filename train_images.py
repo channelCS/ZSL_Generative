@@ -31,9 +31,22 @@ os.makedirs(opt['log'],exist_ok=True)
 
 # initialize loggers and variables
 logger= init_loggers(opt)
+dataset_name = opt["datasets"]["name"]
 manual_seed = opt['manual_seed']
 att_size = opt["network"]["gan"]["att_size"]
+res_size = opt["network"]["gan"]["res_size"]
 batch_size = opt["train"]["batch_size"]
+lambda_gan = opt["network"]["gan"]["lambda"]
+recons_weight = opt["network"]["decoder"]["recons_weight"]
+gamma_d = opt["network"]["gan"]["gamma_d"]
+a1_feedback = opt["network"]["feedback"]["a1"]
+num_epoch = opt["train"]["num_epoch"]
+critic_iter = opt["network"]["gan"]["critic_iter"]
+noise_gan = opt["network"]["gan"]["noise"]
+latent_dim = opt["network"]["gan"]["latent_dim"]
+syn_num = opt["network"]["gan"]["syn_num"]
+lr_classifier = opt["network"]["classifier"]["lr"]
+gzsl = opt["network"]["classifier"]["gzsl"]
 
 logger.info(f"Random Seed: {manual_seed}")
 random.seed(manual_seed)
@@ -61,7 +74,7 @@ print(netDec)
 
 ###########
 # Init Tensors
-input_res = torch.FloatTensor(batch_size, opt["network"]["gan"]["res_size"])
+input_res = torch.FloatTensor(batch_size, res_size)
 input_att = torch.FloatTensor(batch_size, att_size) # att_size class-embedding size
 noise = torch.FloatTensor(batch_size, att_size)
 one = torch.FloatTensor([1])
@@ -98,7 +111,7 @@ def WeightedL1(pred, gt):
     
 def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None):
     nclass = classes.size(0)
-    syn_feature = torch.FloatTensor(nclass*num, opt["network"]["gan"]["res_size"])
+    syn_feature = torch.FloatTensor(nclass*num, res_size)
     syn_label = torch.LongTensor(nclass*num) 
     syn_att = torch.FloatTensor(num, att_size)
     syn_noise = torch.FloatTensor(num, att_size) # replaced nz with att_size
@@ -155,13 +168,9 @@ def calc_gradient_penalty(netD,real_data, fake_data, input_att, lambda_gan):
 
 best_gzsl_acc = 0
 best_zsl_acc = 0
-lambda_gan = opt["network"]["gan"]["lambda"]
-recons_weight = opt["network"]["decoder"]["recons_weight"]
-gamma_d = opt["network"]["gan"]["gamma_d"]
-a1_feedback = opt["network"]["feedback"]["a1"]
 
 logger.info(f'Start training from epoch: {0}, iter: {0}')
-for epoch in range(0,opt["train"]["num_epoch"]):
+for epoch in range(0,num_epoch):
     for loop in range(0,opt["network"]["feedback"]["feedback_loop"]):
         for i in range(0, data.ntrain, batch_size):
             ######### Discriminator training ##############
@@ -172,7 +181,7 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 p.requires_grad = True
             # Train D1 and Decoder (and Decoder Discriminator)
             gp_sum = 0 #lAMBDA VARIABLE
-            for iter_d in range(opt["network"]["gan"]["critic_iter"]):
+            for iter_d in range(critic_iter):
                 sample()
                 netD.zero_grad()          
                 input_resv = Variable(input_res)
@@ -186,10 +195,10 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 criticD_real = netD(input_resv, input_attv)
                 criticD_real = gamma_d*criticD_real.mean()
                 criticD_real.backward(mone)
-                if opt["network"]["gan"]["noise"]:        
+                if noise_gan:        
                     means, log_var = netE(input_resv, input_attv)
                     std = torch.exp(0.5 * log_var)
-                    eps = torch.randn([batch_size, opt["network"]["gan"]["latent_dim"]]).cpu()
+                    eps = torch.randn([batch_size, latent_dim]).cpu()
                     eps = Variable(eps.cuda())
                     z = eps * std + means #torch.Size([64, 312])
                 else:
@@ -217,7 +226,7 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 D_cost = criticD_fake - criticD_real + gradient_penalty #add Y here and #add vae reconstruction loss
                 optimizerD.step()
 
-            gp_sum /= (gamma_d * lambda_gan * opt["network"]["gan"]["critic_iter"])
+            gp_sum /= (gamma_d * lambda_gan * critic_iter)
             if (gp_sum > 1.05).sum() > 0:
                 lambda_gan *= 1.1
             elif (gp_sum < 1.001).sum() > 0:
@@ -238,7 +247,7 @@ for epoch in range(0,opt["train"]["num_epoch"]):
             input_attv = Variable(input_att)
             means, log_var = netE(input_resv, input_attv)
             std = torch.exp(0.5 * log_var)
-            eps = torch.randn([batch_size, opt["network"]["gan"]["latent_dim"]]).cpu()
+            eps = torch.randn([batch_size, latent_dim]).cpu()
             eps = Variable(eps.cuda())
             z = eps * std + means #torch.Size([64, 312])
             if loop == 1:
@@ -253,7 +262,7 @@ for epoch in range(0,opt["train"]["num_epoch"]):
             vae_loss_seen = loss_fn(recon_x, input_resv, means, log_var) # minimize E 3 with this setting feedback will update the loss as well
             errG = vae_loss_seen
             
-            if opt["network"]["gan"]["noise"]:
+            if noise_gan:
                 criticG_fake = netD(recon_x,input_attv).mean()
                 fake = recon_x 
             else:
@@ -284,20 +293,20 @@ for epoch in range(0,opt["train"]["num_epoch"]):
             if recons_weight > 0: # not train decoder at feedback time
                 optimizerDec.step() 
 
-    logger.info('[%d/%d]  Loss_D: %.4f Loss_G: %.4f, Wasserstein_dist:%.4f, vae_loss_seen:%.4f'% (epoch, opt["train"]["num_epoch"], D_cost.data[0], G_cost.data[0], Wasserstein_D.data[0],vae_loss_seen.data[0]))
+    logger.info('[%d/%d]  Loss_D: %.4f Loss_G: %.4f, Wasserstein_dist:%.4f, vae_loss_seen:%.4f'% (epoch, num_epoch, D_cost.data[0], G_cost.data[0], Wasserstein_D.data[0],vae_loss_seen.data[0]))
     netG.eval()
     netDec.eval()
     netF.eval()
-    syn_feature, syn_label = generate_syn_feature(netG,data.unseenclasses, data.attribute, opt["network"]["gan"]["syn_num"],netF=netF,netDec=netDec)
+    syn_feature, syn_label = generate_syn_feature(netG,data.unseenclasses, data.attribute, syn_num,netF=netF,netDec=netDec)
     # Generalized zero-shot learning
-    if opt["network"]["classifier"]["gzsl"]:   
+    if gzsl:   
         # Concatenate real seen features with synthesized unseen features
         train_X = torch.cat((data.train_feature, syn_feature), 0)
         train_Y = torch.cat((data.train_label, syn_label), 0)
         nclass = opt["network"]["gan"]["num_class"]
         # Train GZSL classifier
-        gzsl_cls = classifier.CLASSIFIER(train_X, train_Y, data, nclass, cuda, opt["network"]["classifier"]["lr"], 0.5, \
-                25, opt["network"]["gan"]["syn_num"], generalized=True, netDec=netDec, dec_size=att_size, dec_hidden_size=4096)
+        gzsl_cls = classifier.CLASSIFIER(train_X, train_Y, data, nclass, cuda, lr_classifier, 0.5, \
+                25, syn_num, generalized=True, netDec=netDec, dec_size=att_size, dec_hidden_size=4096)
         if best_gzsl_acc < gzsl_cls.H:
             best_acc_seen, best_acc_unseen, best_gzsl_acc = gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H
         logger.info('GZSL: seen=%.4f, unseen=%.4f, h=%.4f' % (gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H))
@@ -305,7 +314,7 @@ for epoch in range(0,opt["train"]["num_epoch"]):
     # Zero-shot learning
     # Train ZSL classifier
     zsl_cls = classifier.CLASSIFIER(syn_feature, util.map_label(syn_label, data.unseenclasses), \
-                    data, data.unseenclasses.size(0), cuda, opt["network"]["classifier"]["lr"], 0.5, 25, opt["network"]["gan"]["syn_num"], \
+                    data, data.unseenclasses.size(0), cuda, lr_classifier, 0.5, 25, syn_num, \
                     generalized=False, netDec=netDec, dec_size=att_size, dec_hidden_size=4096)
     acc = zsl_cls.acc
     if best_zsl_acc < acc:
@@ -318,10 +327,10 @@ for epoch in range(0,opt["train"]["num_epoch"]):
 
 logger.info('End of training.')
 
-logger.info(f'Dataset {opt["datasets"]["name"]}')
+logger.info(f'Dataset {dataset_name}')
 logger.info(f'the best ZSL unseen accuracy is {best_zsl_acc}')
-if opt["network"]["classifier"]["gzsl"]:
-    logger.info(f'Dataset {opt["datasets"]["name"]}')
+if gzsl:
+    logger.info(f'Dataset {dataset_name}')
     logger.info(f'the best GZSL seen accuracy is {best_acc_seen}')
     logger.info(f'the best GZSL unseen accuracy is {best_acc_unseen}')
     logger.info(f'the best GZSL H is {best_gzsl_acc}')
