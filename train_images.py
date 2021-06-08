@@ -118,9 +118,9 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
         syn_att.copy_(iclass_att.repeat(num, 1))
         syn_noise.normal_(0, 1)
         # syn_noisev = Variable(syn_noise,volatile=True)
-        syn_noisev = syn_noise.detach()
+        syn_noisev = syn_noise.clone()
         # syn_attv = Variable(syn_att,volatile=True)
-        syn_attv = syn_att.detach()
+        syn_attv = syn_att.clone()
         fake = generator(syn_noisev,c=syn_attv)
         if netF is not None:
             dec_out = netDec(fake) # only to call the forward function of decoder
@@ -129,7 +129,7 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
             fake = generator(syn_noisev, a1=opt["network"]["feedback"]["a2"], c=syn_attv, feedback_layers=feedback_out)
         output = fake
         # syn_feature.narrow(0, i*num, num).copy_(output.data.cpu())
-        syn_feature.narrow(0, i*num, num).copy_(output.detach().cpu())
+        syn_feature.narrow(0, i*num, num).copy_(output.data().cpu())
         syn_label.narrow(0, i*num, num).fill_(iclass)
 
     return syn_feature, syn_label
@@ -149,9 +149,9 @@ def calc_gradient_penalty(netD,real_data, fake_data, input_att):
     if cuda:
         interpolates = interpolates.cuda()
     # interpolates = Variable(interpolates, requires_grad=True)
-    interpolates = interpolates.detach().requires_grad_(True)
+    interpolates = interpolates.clone()
     # disc_interpolates = netD(interpolates, Variable(input_att))
-    disc_interpolates = netD(interpolates, input_att.detach())
+    disc_interpolates = netD(interpolates, input_att.clone())
     ones = torch.ones(disc_interpolates.size())
     if cuda:
         ones = ones.cuda()
@@ -179,9 +179,9 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 sample()
                 netD.zero_grad()          
                 # input_resv = Variable(input_res)
-                input_resv = input_res.detach()
+                input_resv = input_res.clone()
                 # input_attv = Variable(input_att)
-                input_attv = input_att.detach()
+                input_attv = input_att.clone()
 
                 netDec.zero_grad()
                 recons = netDec(input_resv)
@@ -197,13 +197,13 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                     eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
 
                     # eps = Variable(eps.cuda())
-                    eps = eps.detach().cuda()
+                    eps = eps.clone().cuda()
 
                     z = eps * std + means #torch.Size([64, 312])
                 else:
                     noise.normal_(0, 1)
                     # z = Variable(noise)
-                    z = noise.detach()
+                    z = noise.clone()
 
                 if loop == 1:
                     fake = netG(z, c=input_attv)
@@ -220,10 +220,10 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 
                 # gradient penalty
                 # gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.data, input_att)
-                gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.detach(), input_att)
+                gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.data(), input_att)
                 # if opt.lambda_mult == 1.1:
                 # gp_sum += gradient_penalty.data
-                gp_sum += gradient_penalty.detach()
+                gp_sum += gradient_penalty.data()
                 gradient_penalty.backward()         
                 Wasserstein_D = criticD_real - criticD_fake
                 D_cost = criticD_fake - criticD_real + gradient_penalty #add Y here and #add vae reconstruction loss
@@ -248,14 +248,14 @@ for epoch in range(0,opt["train"]["num_epoch"]):
             netF.zero_grad()
             # input_resv = Variable(input_res)
             # input_attv = Variable(input_att)
-            input_resv = input_res.detach()
-            input_attv = input_att.detach()
+            input_resv = input_res.clone()
+            input_attv = input_att.clone()
             means, log_var = netE(input_resv, input_attv)
             std = torch.exp(0.5 * log_var)
             eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
 
             # eps = Variable(eps.cuda())
-            eps = eps.detach().cuda()
+            eps = eps.clone().cuda()
             
             z = eps * std + means #torch.Size([64, 312])
             if loop == 1:
@@ -276,7 +276,7 @@ for epoch in range(0,opt["train"]["num_epoch"]):
             else:
                 noise.normal_(0, 1)
                 # noisev = Variable(noise)
-                noisev = noise.detach()
+                noisev = noise.clone()
                 if loop == 1:
                     fake = netG(noisev, c=input_attv)
                     dec_out = netDec(recon_x) #Feedback from Decoder encoded output
@@ -308,19 +308,20 @@ for epoch in range(0,opt["train"]["num_epoch"]):
     netDec.eval()
     netF.eval()
 
-    syn_feature, syn_label = generate_syn_feature(netG,data.unseenclasses, data.attribute, opt["network"]["gan"]["syn_num"],netF=netF,netDec=netDec)
-    # Generalized zero-shot learning
-    if opt["network"]["classifier"]["gzsl"]:   
-        # Concatenate real seen features with synthesized unseen features
-        train_X = torch.cat((data.train_feature, syn_feature), 0)
-        train_Y = torch.cat((data.train_label, syn_label), 0)
-        nclass = opt["network"]["gan"]["num_class"]
-        # Train GZSL classifier
-        gzsl_cls = classifier.CLASSIFIER(train_X, train_Y, data, nclass, cuda, opt["network"]["classifier"]["lr"], 0.5, \
-                25, opt["network"]["gan"]["syn_num"], generalized=True, netDec=netDec, dec_size=opt["network"]["gan"]["att_size"], dec_hidden_size=4096)
-        if best_gzsl_acc < gzsl_cls.H:
-            best_acc_seen, best_acc_unseen, best_gzsl_acc = gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H
-        logger.info('GZSL: seen=%.4f, unseen=%.4f, h=%.4f' % (gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H))
+    with torch.no_grad():
+        syn_feature, syn_label = generate_syn_feature(netG,data.unseenclasses, data.attribute, opt["network"]["gan"]["syn_num"],netF=netF,netDec=netDec)
+        # Generalized zero-shot learning
+        if opt["network"]["classifier"]["gzsl"]:   
+            # Concatenate real seen features with synthesized unseen features
+            train_X = torch.cat((data.train_feature, syn_feature), 0)
+            train_Y = torch.cat((data.train_label, syn_label), 0)
+            nclass = opt["network"]["gan"]["num_class"]
+            # Train GZSL classifier
+            gzsl_cls = classifier.CLASSIFIER(train_X, train_Y, data, nclass, cuda, opt["network"]["classifier"]["lr"], 0.5, \
+                    25, opt["network"]["gan"]["syn_num"], generalized=True, netDec=netDec, dec_size=opt["network"]["gan"]["att_size"], dec_hidden_size=4096)
+            if best_gzsl_acc < gzsl_cls.H:
+                best_acc_seen, best_acc_unseen, best_gzsl_acc = gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H
+            logger.info('GZSL: seen=%.4f, unseen=%.4f, h=%.4f' % (gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H))
 
     # Zero-shot learning
     # Train ZSL classifier

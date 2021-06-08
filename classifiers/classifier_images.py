@@ -71,8 +71,8 @@ class CLASSIFIER:
                    
                 # inputv = Variable(self.input)
                 # labelv = Variable(self.label)
-                inputv = self.input.detach()
-                labelv = self.label.detach()
+                inputv = self.input.clone()
+                labelv = self.label.clone()
                 output = self.model(inputv)
                 loss = self.criterion(output, labelv)
                 mean_loss += loss.item()
@@ -102,8 +102,8 @@ class CLASSIFIER:
                    
                 # inputv = Variable(self.input)
                 # labelv = Variable(self.label)
-                inputv = self.input.detach()
-                labelv = self.label.detach()
+                inputv = self.input.clone()
+                labelv = self.label.clone()
                 output = self.model(inputv)
                 loss = self.criterion(output, labelv)
                 loss.backward()
@@ -162,15 +162,16 @@ class CLASSIFIER:
         predicted_label = torch.LongTensor(test_label.size())
         for i in range(0, ntest, self.batch_size):
             end = min(ntest, start+self.batch_size)
-            if self.cuda:
-                # inputX = Variable(test_X[start:end].cuda(), volatile=True)
-                inputX = test_X[start:end].detach().cuda()
-            else:
-                # inputX = Variable(test_X[start:end], volatile=True)
-                inputX = test_X[start:end].detach()
-            output = self.model(inputX)  
-            _, predicted_label[start:end] = torch.max(output.data, 1)
-            start = end
+            with torch.no_grad():
+                if self.cuda:
+                    # inputX = Variable(test_X[start:end].cuda(), volatile=True)
+                    inputX = test_X[start:end].clone().cuda()
+                else:
+                    # inputX = Variable(test_X[start:end], volatile=True)
+                    inputX = test_X[start:end].clone()
+                output = self.model(inputX)  
+                _, predicted_label[start:end] = torch.max(output.data, 1)
+                start = end
 
         acc = self.compute_per_class_acc_gzsl(test_label, predicted_label, target_classes)
         return acc
@@ -190,15 +191,16 @@ class CLASSIFIER:
         predicted_label = torch.LongTensor(test_label.size())
         for i in range(0, ntest, self.batch_size):
             end = min(ntest, start+self.batch_size)
-            if self.cuda:
-                # inputX = Variable(test_X[start:end].cuda(), volatile=True)
-                inputX = test_X[start:end].detach().cuda()
-            else:
-                # inputX = Variable(test_X[start:end], volatile=True)
-                inputX = test_X[start:end].detach()
-            output = self.model(inputX) 
-            _, predicted_label[start:end] = torch.max(output.data, 1)
-            start = end
+            with torch.no_grad():
+                if self.cuda:
+                    # inputX = Variable(test_X[start:end].cuda(), volatile=True)
+                    inputX = test_X[start:end].clone().cuda()
+                else:
+                    # inputX = Variable(test_X[start:end], volatile=True)
+                    inputX = test_X[start:end].clone()
+                output = self.model(inputX) 
+                _, predicted_label[start:end] = torch.max(output.data, 1)
+                start = end
 
         acc = self.compute_per_class_acc(util.map_label(test_label, target_classes), predicted_label, target_classes.size(0))
         return acc
@@ -219,10 +221,10 @@ class CLASSIFIER:
             end = min(ntest, start+self.batch_size)
             if self.cuda:
                 # inputX = Variable(test_X[start:end].cuda(), volatile=True)
-                inputX = test_X[start:end].detach().cuda()
+                inputX = test_X[start:end].clone().cuda()
             else:
                 # inputX = Variable(test_X[start:end], volatile=True)
-                inputX = test_X[start:end].detach()
+                inputX = test_X[start:end].clone()
             feat1 = self.netDec(inputX)
             feat2 = self.netDec.getLayersOutDet()
             new_test_X[start:end] = torch.cat([inputX,feat1,feat2],dim=1).data.cpu()
