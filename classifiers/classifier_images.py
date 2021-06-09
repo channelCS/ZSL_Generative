@@ -13,11 +13,11 @@ import pdb
 class CLASSIFIER:
     # train_Y is interger 
     def __init__(self, _train_X, _train_Y, data_loader, _nclass, _cuda, _lr=0.001, _beta1=0.5, _nepoch=20, _batch_size=100, generalized=True, netDec=None, dec_size=4096, dec_hidden_size=4096):
-        self.train_X =  _train_X.clone() 
-        self.train_Y = _train_Y.clone() 
-        self.test_seen_feature = data_loader.test_seen_feature.clone()
+        self.train_X =  _train_X
+        self.train_Y = _train_Y
+        self.test_seen_feature = data_loader.test_seen_feature
         self.test_seen_label = data_loader.test_seen_label 
-        self.test_unseen_feature = data_loader.test_unseen_feature.clone()
+        self.test_unseen_feature = data_loader.test_unseen_feature
         self.test_unseen_label = data_loader.test_unseen_label 
         self.seenclasses = data_loader.seenclasses
         self.unseenclasses = data_loader.unseenclasses
@@ -71,8 +71,8 @@ class CLASSIFIER:
                    
                 # inputv = Variable(self.input)
                 # labelv = Variable(self.label)
-                inputv = self.input.clone()
-                labelv = self.label.clone()
+                inputv = self.input
+                labelv = self.label
                 output = self.model(inputv)
                 loss = self.criterion(output, labelv)
                 mean_loss += loss.item()
@@ -102,8 +102,8 @@ class CLASSIFIER:
                    
                 # inputv = Variable(self.input)
                 # labelv = Variable(self.label)
-                inputv = self.input.clone()
-                labelv = self.label.clone()
+                inputv = self.input
+                labelv = self.label
                 output = self.model(inputv)
                 loss = self.criterion(output, labelv)
                 loss.backward()
@@ -162,17 +162,18 @@ class CLASSIFIER:
         predicted_label = torch.LongTensor(test_label.size())
         for i in range(0, ntest, self.batch_size):
             end = min(ntest, start+self.batch_size)
+            inputX = test_X[start:end]
             with torch.no_grad():
                 if self.cuda:
                     # inputX = Variable(test_X[start:end].cuda(), volatile=True)
-                    inputX = test_X[start:end].clone().cuda()
-                else:
-                    # inputX = Variable(test_X[start:end], volatile=True)
-                    inputX = test_X[start:end].clone()
+                    inputX.cuda()
+                # else:
+                #     # inputX = Variable(test_X[start:end], volatile=True)
+                #     inputX = test_X[start:end]
                 output = self.model(inputX)  
                 _, predicted_label[start:end] = torch.max(output.data, 1)
                 start = end
-
+            # self.model.train()
         acc = self.compute_per_class_acc_gzsl(test_label, predicted_label, target_classes)
         return acc
 
@@ -191,13 +192,14 @@ class CLASSIFIER:
         predicted_label = torch.LongTensor(test_label.size())
         for i in range(0, ntest, self.batch_size):
             end = min(ntest, start+self.batch_size)
+            inputX = test_X[start:end]
             with torch.no_grad():
                 if self.cuda:
                     # inputX = Variable(test_X[start:end].cuda(), volatile=True)
-                    inputX = test_X[start:end].clone().cuda()
-                else:
-                    # inputX = Variable(test_X[start:end], volatile=True)
-                    inputX = test_X[start:end].clone()
+                    inputX.cuda()
+                # else:
+                #     # inputX = Variable(test_X[start:end], volatile=True)
+                #     inputX = test_X[start:end]
                 output = self.model(inputX) 
                 _, predicted_label[start:end] = torch.max(output.data, 1)
                 start = end
@@ -219,12 +221,13 @@ class CLASSIFIER:
         new_test_X = torch.zeros(ntest,new_size)
         for i in range(0, ntest, self.batch_size):
             end = min(ntest, start+self.batch_size)
+            inputX = test_X[start:end]
             if self.cuda:
                 # inputX = Variable(test_X[start:end].cuda(), volatile=True)
-                inputX = test_X[start:end].clone().cuda()
-            else:
-                # inputX = Variable(test_X[start:end], volatile=True)
-                inputX = test_X[start:end].clone()
+                inputX.cuda()
+            # else:
+            #     # inputX = Variable(test_X[start:end], volatile=True)
+            #     inputX = test_X[start:end]
             feat1 = self.netDec(inputX)
             feat2 = self.netDec.getLayersOutDet()
             new_test_X[start:end] = torch.cat([inputX,feat1,feat2],dim=1).data.cpu()
