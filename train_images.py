@@ -46,20 +46,10 @@ syn_num = opt["network"]["gan"]["syn_num"]
 lr_classifier = opt["network"]["classifier"]["lr"]
 gzsl = opt["network"]["classifier"]["gzsl"]
 
-<<<<<<< HEAD
-logger.info(f"Random Seed: {opt['manual_seed']}")
-random.seed(opt['manual_seed'])
-torch.manual_seed(opt['manual_seed'])
-cuda = False
-||||||| merged common ancestors
-logger.info(f"Random Seed: {opt['manual_seed']}")
-random.seed(opt['manual_seed'])
-torch.manual_seed(opt['manual_seed'])
-=======
 logger.info(f"Random Seed: {manual_seed}")
 random.seed(manual_seed)
 torch.manual_seed(manual_seed)
->>>>>>> main
+cuda = False
 if torch.cuda.is_available():
     cuda = True
     torch.cuda.manual_seed_all(manual_seed)
@@ -83,25 +73,12 @@ print(netDec)
 
 ###########
 # Init Tensors
-<<<<<<< HEAD
-input_res = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["res_size"])
-input_att = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"]) # att_size 
+input_res = torch.FloatTensor(batch_size, res_size)
+input_att = torch.FloatTensor(batch_size, att_size) # att_size
 # class-embedding size
-noise = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"])
-# one = torch.FloatTensor([1])
+noise = torch.FloatTensor(batch_size, att_size)
 one = torch.tensor(1, dtype=torch.float)
 
-||||||| merged common ancestors
-input_res = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["res_size"])
-input_att = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"]) # att_size class-embedding size
-noise = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"])
-one = torch.FloatTensor([1])
-=======
-input_res = torch.FloatTensor(batch_size, res_size)
-input_att = torch.FloatTensor(batch_size, att_size) # att_size class-embedding size
-noise = torch.FloatTensor(batch_size, att_size)
-one = torch.FloatTensor([1])
->>>>>>> main
 mone = one * -1
 ##########
 # Cuda
@@ -144,17 +121,9 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
     nclass = classes.size(0)
     syn_feature = torch.FloatTensor(nclass*num, res_size)
     syn_label = torch.LongTensor(nclass*num) 
-<<<<<<< HEAD
-    syn_att = torch.FloatTensor(num, opt["network"]["gan"]["att_size"])
-    syn_noise = torch.FloatTensor(num, opt["network"]["gan"]["att_size"]) # replaced nz with att_size
-
-||||||| merged common ancestors
-    syn_att = torch.FloatTensor(num, opt["network"]["gan"]["att_size"])
-    syn_noise = torch.FloatTensor(num, opt["network"]["gan"]["att_size"]) # replaced nz with att_size
-=======
     syn_att = torch.FloatTensor(num, att_size)
     syn_noise = torch.FloatTensor(num, att_size) # replaced nz with att_size
->>>>>>> main
+
     if cuda:
         syn_att = syn_att.cuda()
         syn_noise = syn_noise.cuda()
@@ -179,20 +148,6 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
 
     return syn_feature, syn_label
 
-<<<<<<< HEAD
-optimizer = optim.Adam(netE.parameters(), lr=opt["network"]["gan"]["lr"])
-optimizerD = optim.Adam(netD.parameters(), lr=opt["network"]["gan"]["lr"],betas=opt["train"]["betas"])
-optimizerG = optim.Adam(netG.parameters(), lr=opt["network"]["gan"]["lr"],betas=opt["train"]["betas"])
-optimizerF = optim.Adam(netF.parameters(), lr=opt["network"]["feedback"]["lr"], betas=opt["train"]["betas"])
-optimizerDec = optim.Adam(netDec.parameters(), lr=opt["network"]["decoder"]["lr"], betas=opt["train"]["betas"])
-||||||| merged common ancestors
-
-optimizer = optim.Adam(netE.parameters(), lr=opt["network"]["gan"]["lr"])
-optimizerD = optim.Adam(netD.parameters(), lr=opt["network"]["gan"]["lr"],betas=opt["train"]["betas"])
-optimizerG = optim.Adam(netG.parameters(), lr=opt["network"]["gan"]["lr"],betas=opt["train"]["betas"])
-optimizerF = optim.Adam(netF.parameters(), lr=opt["network"]["feedback"]["lr"], betas=opt["train"]["betas"])
-optimizerDec = optim.Adam(netDec.parameters(), lr=opt["network"]["decoder"]["lr"], betas=opt["train"]["betas"])
-=======
 lr_gan = opt["network"]["gan"]["lr"]
 betas = opt["train"]["betas"]
 
@@ -201,20 +156,10 @@ optimizerD = optim.Adam(netD.parameters(), lr=lr_gan,betas=betas)
 optimizerG = optim.Adam(netG.parameters(), lr=lr_gan,betas=betas)
 optimizerF = optim.Adam(netF.parameters(), lr=opt["network"]["feedback"]["lr"], betas=betas)
 optimizerDec = optim.Adam(netDec.parameters(), lr=opt["network"]["decoder"]["lr"], betas=betas)
->>>>>>> main
 
-<<<<<<< HEAD
-def calc_gradient_penalty(netD,real_data, fake_data, input_att):
-    alpha = torch.rand(opt["train"]["batch_size"], 1)
-||||||| merged common ancestors
-
-def calc_gradient_penalty(netD,real_data, fake_data, input_att):
-    alpha = torch.rand(opt["train"]["batch_size"], 1)
-=======
 
 def calc_gradient_penalty(netD,real_data, fake_data, input_att, lambda_gan):
     alpha = torch.rand(batch_size, 1)
->>>>>>> main
     alpha = alpha.expand(real_data.size())
     if cuda:
         alpha = alpha.cuda()
@@ -262,46 +207,19 @@ for epoch in range(0,num_epoch):
                 R_cost = recons_weight*WeightedL1(recons, input_attv) 
                 R_cost.backward()
                 optimizerDec.step()
-<<<<<<< HEAD
-                criticD_real = netD(input_resv, input_attv) # input_attv semantic embeddings
-                criticD_real = opt["network"]["gan"]["gamma_d"]*criticD_real.mean()
-||||||| merged common ancestors
-                criticD_real = netD(input_resv, input_attv)
-                criticD_real = opt["network"]["gan"]["gamma_d"]*criticD_real.mean()
-=======
-                criticD_real = netD(input_resv, input_attv)
+                criticD_real = netD(input_resv, input_attv) # input_attv: semantic embeddings
                 criticD_real = gamma_d*criticD_real.mean()
->>>>>>> main
                 criticD_real.backward(mone)
-<<<<<<< HEAD
-                if opt["network"]["gan"]["noise"]:  
+                if noise_gan:
                     # Encoder phase   
-                    # input_resv visual features x
-                    # input_attv semantic embeddings a
-                    means, log_var = netE(input_resv, input_attv) 
-||||||| merged common ancestors
-                if opt["network"]["gan"]["noise"]:        
+                    # input_resv: visual features x
+                    # input_attv: semantic embeddings a
                     means, log_var = netE(input_resv, input_attv)
-=======
-                if noise_gan:        
-                    means, log_var = netE(input_resv, input_attv)
->>>>>>> main
                     std = torch.exp(0.5 * log_var)
-<<<<<<< HEAD
-                    eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
-
-                    # eps = Variable(eps.cuda())
+                    eps = torch.randn([batch_size, latent_dim]).cpu()
                     if cuda:
                         eps = eps.cuda()
-
-                    # Latent code z 
-||||||| merged common ancestors
-                    eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
-                    eps = Variable(eps.cuda())
-=======
-                    eps = torch.randn([batch_size, latent_dim]).cpu()
-                    eps = Variable(eps.cuda())
->>>>>>> main
+                    # Latent code z
                     z = eps * std + means #torch.Size([64, 312])
                 else:
                     noise.normal_(0, 1)
@@ -313,16 +231,8 @@ for epoch in range(0,num_epoch):
                     fake = netG(z, c=input_attv)
                     dec_out = netDec(fake)
                     dec_hidden_feat = netDec.getLayersOutDet()
-<<<<<<< HEAD
                     feedback_out = netF(dec_hidden_feat) # taking feedback from the feedback module
-                    fake = netG(z, a1=opt["network"]["feedback"]["a1"], c=input_attv, feedback_layers=feedback_out)
-||||||| merged common ancestors
-                    feedback_out = netF(dec_hidden_feat)
-                    fake = netG(z, a1=opt["network"]["feedback"]["a1"], c=input_attv, feedback_layers=feedback_out)
-=======
-                    feedback_out = netF(dec_hidden_feat)
                     fake = netG(z, a1=a1_feedback, c=input_attv, feedback_layers=feedback_out)
->>>>>>> main
                 else:
                     fake = netG(z, c=input_attv)
 
@@ -331,41 +241,19 @@ for epoch in range(0,num_epoch):
                 criticD_fake.backward(one)
                 
                 # gradient penalty
-<<<<<<< HEAD
-                # gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.data, input_att)
-                gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.data, input_att)
-||||||| merged common ancestors
-                gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.data, input_att)
-=======
                 gradient_penalty = gamma_d*calc_gradient_penalty(netD, input_res, fake.data, input_att, lambda_gan)
->>>>>>> main
                 # if opt.lambda_mult == 1.1:
-                # gp_sum += gradient_penalty.data
+                gp_sum += gradient_penalty.data
                 gradient_penalty.backward()         
                 Wasserstein_D = criticD_real - criticD_fake
                 D_cost = criticD_fake - criticD_real + gradient_penalty #add Y here and #add vae reconstruction loss
                 optimizerD.step()
 
-<<<<<<< HEAD
-            gp_sum /= (opt["network"]["gan"]["gamma_d"]*opt["network"]["gan"]["lambda"]*opt["network"]["gan"]["critic_iter"])
-            # import pdb; pdb.set_trace()
-            if gp_sum > 1.05:
-                opt["network"]["gan"]["lambda"] *= 1.1
-            elif gp_sum < 1.001:
-                opt["network"]["gan"]["lambda"] /= 1.1
-||||||| merged common ancestors
-            gp_sum /= (opt["network"]["gan"]["gamma_d"]*opt["network"]["gan"]["lambda"]*opt["network"]["gan"]["critic_iter"])
-            if (gp_sum > 1.05).sum() > 0:
-                opt["network"]["gan"]["lambda"] *= 1.1
-            elif (gp_sum < 1.001).sum() > 0:
-                opt["network"]["gan"]["lambda"] /= 1.1
-=======
             gp_sum /= (gamma_d * lambda_gan * critic_iter)
             if (gp_sum > 1.05).sum() > 0:
                 lambda_gan *= 1.1
             elif (gp_sum < 1.001).sum() > 0:
                 lambda_gan /= 1.1
->>>>>>> main
 
             #############Generator training ##############
             # Train Generator and Decoder
@@ -384,20 +272,9 @@ for epoch in range(0,num_epoch):
             input_attv = input_att
             means, log_var = netE(input_resv, input_attv)
             std = torch.exp(0.5 * log_var)
-<<<<<<< HEAD
-            eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
-
-            # eps = Variable(eps.cuda())
+            eps = torch.randn([batch_size, latent_dim]).cpu()
             if cuda:
                 eps = eps.cuda()
-            
-||||||| merged common ancestors
-            eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
-            eps = Variable(eps.cuda())
-=======
-            eps = torch.randn([batch_size, latent_dim]).cpu()
-            eps = Variable(eps.cuda())
->>>>>>> main
             z = eps * std + means #torch.Size([64, 312])
             if loop == 1:
                 recon_x = netG(z, c=input_attv)
@@ -422,7 +299,7 @@ for epoch in range(0,num_epoch):
                     fake = netG(noisev, c=input_attv)
                     dec_out = netDec(recon_x) #Feedback from Decoder encoded output
                     dec_hidden_feat = netDec.getLayersOutDet()
-                    feedback_out = netF(dec_hidden_feat)
+                    feedback_out = netF(dec_hidden_feat) # taking feedback from the feedback module
                     fake = netG(noisev, a1=a1_feedback, c=input_attv, feedback_layers=feedback_out)
                 else:
                     fake = netG(noisev, c=input_attv)
@@ -443,57 +320,28 @@ for epoch in range(0,num_epoch):
             if recons_weight > 0: # not train decoder at feedback time
                 optimizerDec.step() 
 
-<<<<<<< HEAD
-    logger.info('[%d/%d]  Loss_D: %.4f Loss_G: %.4f, Wasserstein_dist:%.4f, vae_loss_seen:%.4f'% (epoch, opt["train"]["num_epoch"], D_cost.item(), G_cost.item(), Wasserstein_D.item(),vae_loss_seen.item()))
+    logger.info('[%d/%d]  Loss_D: %.4f Loss_G: %.4f, Wasserstein_dist:%.4f, vae_loss_seen:%.4f'% (epoch, num_epoch, D_cost.item(), G_cost.item(), Wasserstein_D.item(),vae_loss_seen.item()))
 
-||||||| merged common ancestors
-    logger.info('[%d/%d]  Loss_D: %.4f Loss_G: %.4f, Wasserstein_dist:%.4f, vae_loss_seen:%.4f'% (epoch, opt["train"]["num_epoch"], D_cost.data[0], G_cost.data[0], Wasserstein_D.data[0],vae_loss_seen.data[0]))
-=======
-    logger.info('[%d/%d]  Loss_D: %.4f Loss_G: %.4f, Wasserstein_dist:%.4f, vae_loss_seen:%.4f'% (epoch, num_epoch, D_cost.data[0], G_cost.data[0], Wasserstein_D.data[0],vae_loss_seen.data[0]))
->>>>>>> main
     netG.eval()
     netDec.eval()
     netF.eval()
-<<<<<<< HEAD
 
     with torch.no_grad():
-        syn_feature, syn_label = generate_syn_feature(netG,data.unseenclasses, data.attribute, opt["network"]["gan"]["syn_num"],netF=netF,netDec=netDec)
+        syn_feature, syn_label = generate_syn_feature(netG,data.unseenclasses, data.attribute, syn_num,netF=netF,netDec=netDec)
     
-||||||| merged common ancestors
-    syn_feature, syn_label = generate_syn_feature(netG,data.unseenclasses, data.attribute, opt["network"]["gan"]["syn_num"],netF=netF,netDec=netDec)
-=======
-    syn_feature, syn_label = generate_syn_feature(netG,data.unseenclasses, data.attribute, syn_num,netF=netF,netDec=netDec)
->>>>>>> main
     # Generalized zero-shot learning
     if gzsl:   
         # Concatenate real seen features with synthesized unseen features
         train_X = torch.cat((data.train_feature, syn_feature), 0)
         train_Y = torch.cat((data.train_label, syn_label), 0)
         nclass = opt["network"]["gan"]["num_class"]
-<<<<<<< HEAD
 
-    # Train GZSL classifier
-    gzsl_cls = classifier.CLASSIFIER(train_X, train_Y, data, nclass, cuda, opt["network"]["classifier"]["lr"], 0.5, \
-            25, opt["network"]["gan"]["syn_num"], generalized=True, netDec=netDec, dec_size=opt["network"]["gan"]["att_size"], dec_hidden_size=4096)
-
-    if best_gzsl_acc < gzsl_cls.H:
-        best_acc_seen, best_acc_unseen, best_gzsl_acc = gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H
-    logger.info('GZSL: seen=%.4f, unseen=%.4f, h=%.4f' % (gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H))
-||||||| merged common ancestors
-        # Train GZSL classifier
-        gzsl_cls = classifier.CLASSIFIER(train_X, train_Y, data, nclass, cuda, opt["network"]["classifier"]["lr"], 0.5, \
-                25, opt["network"]["gan"]["syn_num"], generalized=True, netDec=netDec, dec_size=opt["network"]["gan"]["att_size"], dec_hidden_size=4096)
-        if best_gzsl_acc < gzsl_cls.H:
-            best_acc_seen, best_acc_unseen, best_gzsl_acc = gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H
-        logger.info('GZSL: seen=%.4f, unseen=%.4f, h=%.4f' % (gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H))
-=======
         # Train GZSL classifier
         gzsl_cls = classifier.CLASSIFIER(train_X, train_Y, data, nclass, cuda, lr_classifier, 0.5, \
                 25, syn_num, generalized=True, netDec=netDec, dec_size=att_size, dec_hidden_size=4096)
         if best_gzsl_acc < gzsl_cls.H:
             best_acc_seen, best_acc_unseen, best_gzsl_acc = gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H
         logger.info('GZSL: seen=%.4f, unseen=%.4f, h=%.4f' % (gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H))
->>>>>>> main
 
     # Zero-shot learning
     # Train ZSL classifier
