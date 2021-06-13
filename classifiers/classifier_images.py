@@ -1,20 +1,16 @@
 #author: akshitac8
 import torch
 import torch.nn as nn
-# from torch.autograd import Variable
 import torch.optim as optim
-import numpy as np
 import datasets.image_util as util
-from sklearn.preprocessing import MinMaxScaler 
-import sys
 import copy
 import pdb
 
 class CLASSIFIER:
     # train_Y is interger 
     def __init__(self, _train_X, _train_Y, data_loader, _nclass, _cuda, _lr=0.001, _beta1=0.5, _nepoch=20, _batch_size=100, generalized=True, netDec=None, dec_size=4096, dec_hidden_size=4096):
-        self.train_X =  _train_X
-        self.train_Y = _train_Y
+        self.train_X =  _train_X # Concatenate real seen features with synthesized unseen features
+        self.train_Y = _train_Y # Concatenate real seen labels with synthesized unseen labels
         self.test_seen_feature = data_loader.test_seen_feature
         self.test_seen_label = data_loader.test_seen_label 
         self.test_unseen_feature = data_loader.test_unseen_feature
@@ -27,12 +23,12 @@ class CLASSIFIER:
         self.input_dim = _train_X.size(1)
         self.cuda = _cuda
         self.model =  LINEAR_LOGSOFTMAX_CLASSIFIER(self.input_dim, self.nclass)
-        self.netDec = netDec
-        if self.netDec:
-            self.netDec.eval()
-            self.input_dim = self.input_dim + dec_size
-            self.input_dim += dec_hidden_size
-            self.model =  LINEAR_LOGSOFTMAX_CLASSIFIER(self.input_dim, self.nclass)
+        self.netDec = netDec # trained SED
+        assert not self.netDec.training, "Check model mode"
+        self.input_dim = self.input_dim + dec_size # need to check this
+        self.input_dim += dec_hidden_size # need to check this
+        self.model =  LINEAR_LOGSOFTMAX_CLASSIFIER(self.input_dim, self.nclass) # check this
+        with torch.no_grad():
             self.train_X = self.compute_dec_out(self.train_X, self.input_dim)
             self.test_unseen_feature = self.compute_dec_out(self.test_unseen_feature, self.input_dim)
             self.test_seen_feature = self.compute_dec_out(self.test_seen_feature, self.input_dim)
@@ -61,6 +57,7 @@ class CLASSIFIER:
         best_acc = 0
         mean_loss = 0
         last_loss_epoch = 1e8 
+        self.model.train()
         best_model = copy.deepcopy(self.model.state_dict())
         for epoch in range(self.nepoch):
             for i in range(0, self.ntrain, self.batch_size):      
@@ -68,6 +65,7 @@ class CLASSIFIER:
                 batch_input, batch_label = self.next_batch(self.batch_size) 
                 self.input.copy_(batch_input)
                 self.label.copy_(batch_label)
+                self.optimizer.zero_grad()
                    
                 # inputv = Variable(self.input)
                 # labelv = Variable(self.label)
@@ -79,8 +77,11 @@ class CLASSIFIER:
                 loss.backward()
                 self.optimizer.step()
                 #print('Training classifier loss= ', loss.data[0])
-            acc = self.val(self.test_unseen_feature, self.test_unseen_label, self.unseenclasses)
-            #print('acc %.4f' % (acc))
+            self.model.eval()
+            with torch.no_grad():
+                acc = self.val(self.test_unseen_feature, self.test_unseen_label, self.unseenclasses)
+                #print('acc %.4f' % (acc))
+            self.model.train()
             if acc > best_acc:
                 best_acc = acc
                 best_model = copy.deepcopy(self.model.state_dict())
@@ -91,6 +92,7 @@ class CLASSIFIER:
         best_seen = 0
         best_unseen = 0
         out = []
+        self.model.train()
         best_model = copy.deepcopy(self.model.state_dict())
         # early_stopping = EarlyStopping(patience=20, verbose=True)
         for epoch in range(self.nepoch):
@@ -99,6 +101,7 @@ class CLASSIFIER:
                 batch_input, batch_label = self.next_batch(self.batch_size) 
                 self.input.copy_(batch_input)
                 self.label.copy_(batch_label)
+                self.optimizer.zero_grad()
                    
                 # inputv = Variable(self.input)
                 # labelv = Variable(self.label)
@@ -110,8 +113,11 @@ class CLASSIFIER:
                 self.optimizer.step()
             acc_seen = 0
             acc_unseen = 0
-            acc_seen = self.val_gzsl(self.test_seen_feature, self.test_seen_label, self.seenclasses)
-            acc_unseen = self.val_gzsl(self.test_unseen_feature, self.test_unseen_label, self.unseenclasses)
+            self.model.eval()
+            with torch.no_grad():
+                acc_seen = self.val_gzsl(self.test_seen_feature, self.test_seen_label, self.seenclasses)
+                acc_unseen = self.val_gzsl(self.test_unseen_feature, self.test_unseen_label, self.unseenclasses)
+            self.model.train()  
             H = 2*acc_seen*acc_unseen / (acc_seen+acc_unseen)
             if H > best_H:
                 best_seen = acc_seen
@@ -163,17 +169,14 @@ class CLASSIFIER:
         for i in range(0, ntest, self.batch_size):
             end = min(ntest, start+self.batch_size)
             inputX = test_X[start:end]
-            with torch.no_grad():
-                if self.cuda:
-                    # inputX = Variable(test_X[start:end].cuda(), volatile=True)
-                    inputX.cuda()
-                # else:
-                #     # inputX = Variable(test_X[start:end], volatile=True)
-                #     inputX = test_X[start:end]
-                output = self.model(inputX)  
-                _, predicted_label[start:end] = torch.max(output.data, 1)
-                start = end
-            # self.model.train()
+            
+            if self.cuda:
+                # inputX = Variable(test_X[start:end].cuda(), volatile=True)
+                inputX = inputX.cuda()
+            output = self.model(inputX)  
+            _, predicted_label[start:end] = torch.max(output.data, 1)
+            start = end
+
         acc = self.compute_per_class_acc_gzsl(test_label, predicted_label, target_classes)
         return acc
 
@@ -193,16 +196,13 @@ class CLASSIFIER:
         for i in range(0, ntest, self.batch_size):
             end = min(ntest, start+self.batch_size)
             inputX = test_X[start:end]
-            with torch.no_grad():
-                if self.cuda:
-                    # inputX = Variable(test_X[start:end].cuda(), volatile=True)
-                    inputX.cuda()
-                # else:
-                #     # inputX = Variable(test_X[start:end], volatile=True)
-                #     inputX = test_X[start:end]
-                output = self.model(inputX) 
-                _, predicted_label[start:end] = torch.max(output.data, 1)
-                start = end
+            
+            if self.cuda:
+                # inputX = Variable(test_X[start:end].cuda(), volatile=True)
+                inputX = inputX.cuda()
+            output = self.model(inputX) 
+            _, predicted_label[start:end] = torch.max(output.data, 1)
+            start = end
 
         acc = self.compute_per_class_acc(util.map_label(test_label, target_classes), predicted_label, target_classes.size(0))
         return acc
@@ -224,10 +224,7 @@ class CLASSIFIER:
             inputX = test_X[start:end]
             if self.cuda:
                 # inputX = Variable(test_X[start:end].cuda(), volatile=True)
-                inputX.cuda()
-            # else:
-            #     # inputX = Variable(test_X[start:end], volatile=True)
-            #     inputX = test_X[start:end]
+                inputX = inputX.cuda()
             feat1 = self.netDec(inputX)
             feat2 = self.netDec.getLayersOutDet()
             new_test_X[start:end] = torch.cat([inputX,feat1,feat2],dim=1).data.cpu()

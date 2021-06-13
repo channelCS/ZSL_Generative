@@ -57,12 +57,9 @@ print(netDec)
 ###########
 # Init Tensors
 input_res = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["res_size"])
-# input_res = torch.rand(opt["train"]["batch_size"], opt["network"]["gan"]["res_size"])
 input_att = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"]) # att_size 
-# input_att = torch.rand(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"]) # att_size 
 # class-embedding size
 noise = torch.FloatTensor(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"])
-# noise = torch.rand(opt["train"]["batch_size"], opt["network"]["gan"]["att_size"])
 # one = torch.FloatTensor([1])
 one = torch.tensor(1, dtype=torch.float)
 
@@ -81,6 +78,9 @@ if cuda:
     mone = mone.cuda()
 
 def loss_fn(recon_x, x, mean, log_var):
+    '''
+    Binary Cross Entropy loss + KL Divergence loss
+    '''
     BCE = torch.nn.functional.binary_cross_entropy(recon_x+1e-12, x.detach(),reduction='sum')
     BCE = BCE.sum()/ x.size(0)
     KLD = -0.5 * torch.sum(1 + log_var - mean.pow(2) - log_var.exp())/ x.size(0)
@@ -92,22 +92,21 @@ def sample():
     input_att.copy_(batch_att)
 
 def WeightedL1(pred, gt):
+    '''
+    WGAN loss
+    '''
     wt = (pred-gt).pow(2)
     wt /= wt.sum(1).sqrt().unsqueeze(1).expand(wt.size(0),wt.size(1))
     loss = wt * (pred-gt).abs()
     return loss.sum()/loss.size(0)
     
 def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None):
-    nclass = classes.size(0)
     
+    nclass = classes.size(0)
     syn_feature = torch.FloatTensor(nclass*num, opt["network"]["gan"]["res_size"])
-    # syn_feature = torch.rand(nclass*num, opt["network"]["gan"]["res_size"])
     syn_label = torch.LongTensor(nclass*num) 
-    # syn_label = torch.rand(nclass*num) 
     syn_att = torch.FloatTensor(num, opt["network"]["gan"]["att_size"])
-    # syn_att = torch.rand(num, opt["network"]["gan"]["att_size"])
     syn_noise = torch.FloatTensor(num, opt["network"]["gan"]["att_size"]) # replaced nz with att_size
-    # syn_noise = torch.rand(num, opt["network"]["gan"]["att_size"]) # replaced nz with att_size
 
     if cuda:
         syn_att = syn_att.cuda()
@@ -128,8 +127,7 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
             feedback_out = netF(dec_hidden_feat)
             fake = generator(syn_noisev, a1=opt["network"]["feedback"]["a2"], c=syn_attv, feedback_layers=feedback_out)
         output = fake
-        # syn_feature.narrow(0, i*num, num).copy_(output.data.cpu())
-        syn_feature.narrow(0, i*num, num).copy_(output.data().cpu())
+        syn_feature.narrow(0, i*num, num).copy_(output.data.cpu())
         syn_label.narrow(0, i*num, num).fill_(iclass)
 
     return syn_feature, syn_label
@@ -188,28 +186,34 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 R_cost = opt["network"]["decoder"]["recons_weight"]*WeightedL1(recons, input_attv) 
                 R_cost.backward()
                 optimizerDec.step()
-                criticD_real = netD(input_resv, input_attv)
+                criticD_real = netD(input_resv, input_attv) # input_attv semantic embeddings
                 criticD_real = opt["network"]["gan"]["gamma_d"]*criticD_real.mean()
                 criticD_real.backward(mone)
-                if opt["network"]["gan"]["noise"]:        
-                    means, log_var = netE(input_resv, input_attv)
+                if opt["network"]["gan"]["noise"]:  
+                    # Encoder phase   
+                    # input_resv visual features x
+                    # input_attv semantic embeddings a
+                    means, log_var = netE(input_resv, input_attv) 
                     std = torch.exp(0.5 * log_var)
                     eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
 
                     # eps = Variable(eps.cuda())
-                    eps = eps.cuda()
+                    if cuda:
+                        eps = eps.cuda()
 
+                    # Latent code z 
                     z = eps * std + means #torch.Size([64, 312])
                 else:
                     noise.normal_(0, 1)
                     # z = Variable(noise)
                     z = noise
 
+                #  Generator Phase
                 if loop == 1:
                     fake = netG(z, c=input_attv)
                     dec_out = netDec(fake)
                     dec_hidden_feat = netDec.getLayersOutDet()
-                    feedback_out = netF(dec_hidden_feat)
+                    feedback_out = netF(dec_hidden_feat) # taking feedback from the feedback module
                     fake = netG(z, a1=opt["network"]["feedback"]["a1"], c=input_attv, feedback_layers=feedback_out)
                 else:
                     fake = netG(z, c=input_attv)
@@ -220,10 +224,9 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 
                 # gradient penalty
                 # gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.data, input_att)
-                gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.data(), input_att)
+                gradient_penalty = opt["network"]["gan"]["gamma_d"]*calc_gradient_penalty(netD, input_res, fake.data, input_att)
                 # if opt.lambda_mult == 1.1:
                 # gp_sum += gradient_penalty.data
-                gp_sum += gradient_penalty.data()
                 gradient_penalty.backward()         
                 Wasserstein_D = criticD_real - criticD_fake
                 D_cost = criticD_fake - criticD_real + gradient_penalty #add Y here and #add vae reconstruction loss
@@ -255,7 +258,8 @@ for epoch in range(0,opt["train"]["num_epoch"]):
             eps = torch.randn([opt["train"]["batch_size"], opt["network"]["gan"]["latent_dim"]]).cpu()
 
             # eps = Variable(eps.cuda())
-            eps = eps.cuda()
+            if cuda:
+                eps = eps.cuda()
             
             z = eps * std + means #torch.Size([64, 312])
             if loop == 1:
@@ -310,7 +314,6 @@ for epoch in range(0,opt["train"]["num_epoch"]):
 
     with torch.no_grad():
         syn_feature, syn_label = generate_syn_feature(netG,data.unseenclasses, data.attribute, opt["network"]["gan"]["syn_num"],netF=netF,netDec=netDec)
-    #  @adityac8 netG.train() is not defined by authour here.   
     
     # Generalized zero-shot learning
     if opt["network"]["classifier"]["gzsl"]:   
@@ -318,10 +321,11 @@ for epoch in range(0,opt["train"]["num_epoch"]):
         train_X = torch.cat((data.train_feature, syn_feature), 0)
         train_Y = torch.cat((data.train_label, syn_label), 0)
         nclass = opt["network"]["gan"]["num_class"]
-    
+
     # Train GZSL classifier
     gzsl_cls = classifier.CLASSIFIER(train_X, train_Y, data, nclass, cuda, opt["network"]["classifier"]["lr"], 0.5, \
             25, opt["network"]["gan"]["syn_num"], generalized=True, netDec=netDec, dec_size=opt["network"]["gan"]["att_size"], dec_hidden_size=4096)
+
     if best_gzsl_acc < gzsl_cls.H:
         best_acc_seen, best_acc_unseen, best_gzsl_acc = gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H
     logger.info('GZSL: seen=%.4f, unseen=%.4f, h=%.4f' % (gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H))
