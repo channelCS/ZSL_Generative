@@ -34,9 +34,11 @@ manual_seed = opt['manual_seed']
 att_size = opt["network"]["gan"]["att_size"]
 res_size = opt["network"]["gan"]["res_size"]
 batch_size = opt["train"]["batch_size"]
+num_class = opt["network"]["gan"]["num_class"]
 lambda_gan = opt["network"]["gan"]["lambda"]
 recons_weight = opt["network"]["decoder"]["recons_weight"]
 gamma_d = opt["network"]["gan"]["gamma_d"]
+gamma_g = opt["network"]["gan"]["gamma_g"]
 a1_feedback = opt["network"]["feedback"]["a1"]
 num_epoch = opt["train"]["num_epoch"]
 critic_iter = opt["network"]["gan"]["critic_iter"]
@@ -45,6 +47,8 @@ latent_dim = opt["network"]["gan"]["latent_dim"]
 syn_num = opt["network"]["gan"]["syn_num"]
 lr_classifier = opt["network"]["classifier"]["lr"]
 gzsl = opt["network"]["classifier"]["gzsl"]
+feedback_loop = opt["network"]["feedback"]["feedback_loop"]
+a2 = opt["network"]["feedback"]["a2"]
 
 logger.info(f"Random Seed: {manual_seed}")
 random.seed(manual_seed)
@@ -141,7 +145,7 @@ def generate_syn_feature(generator,classes, attribute,num,netF=None,netDec=None)
             dec_out = netDec(fake) # only to call the forward function of decoder
             dec_hidden_feat = netDec.getLayersOutDet() #no detach layers
             feedback_out = netF(dec_hidden_feat)
-            fake = generator(syn_noisev, a1=opt["network"]["feedback"]["a2"], c=syn_attv, feedback_layers=feedback_out)
+            fake = generator(syn_noisev, a1=a2, c=syn_attv, feedback_layers=feedback_out)
         output = fake
         syn_feature.narrow(0, i*num, num).copy_(output.data.cpu())
         syn_label.narrow(0, i*num, num).fill_(iclass)
@@ -184,7 +188,7 @@ best_zsl_acc = 0
 
 logger.info(f'Start training from epoch: {0}, iter: {0}')
 for epoch in range(0,num_epoch):
-    for loop in range(0,opt["network"]["feedback"]["feedback_loop"]):
+    for loop in range(0,feedback_loop):
         for i in range(0, data.ntrain, batch_size):
             ######### Discriminator training ##############
             for p in netD.parameters(): #unfreeze discrimator
@@ -306,7 +310,7 @@ for epoch in range(0,num_epoch):
                 criticG_fake = netD(fake,input_attv).mean()
 
             G_cost = -criticG_fake
-            errG += opt["network"]["gan"]["gamma_g"]*G_cost
+            errG += gamma_g * G_cost
             netDec.zero_grad()
             recons_fake = netDec(fake)
             R_cost = WeightedL1(recons_fake, input_attv)
@@ -334,7 +338,7 @@ for epoch in range(0,num_epoch):
         # Concatenate real seen features with synthesized unseen features
         train_X = torch.cat((data.train_feature, syn_feature), 0)
         train_Y = torch.cat((data.train_label, syn_label), 0)
-        nclass = opt["network"]["gan"]["num_class"]
+        nclass = num_class
 
         # Train GZSL classifier
         gzsl_cls = classifier.CLASSIFIER(train_X, train_Y, data, nclass, cuda, lr_classifier, 0.5, \
