@@ -25,6 +25,7 @@ class CLASSIFIER:
         self.model =  LINEAR_LOGSOFTMAX_CLASSIFIER(self.input_dim, self.nclass)
         self.netDec = netDec # trained SED
         assert not self.netDec.training, "Check model mode"
+        import pdb; pdb.set_trace()
         self.input_dim = self.input_dim + dec_size # need to check this
         self.input_dim += dec_hidden_size # need to check this
         self.model =  LINEAR_LOGSOFTMAX_CLASSIFIER(self.input_dim, self.nclass) # check this
@@ -65,7 +66,6 @@ class CLASSIFIER:
                 batch_input, batch_label = self.next_batch(self.batch_size) 
                 self.input.copy_(batch_input)
                 self.label.copy_(batch_label)
-                self.optimizer.zero_grad()
                    
                 # inputv = Variable(self.input)
                 # labelv = Variable(self.label)
@@ -101,7 +101,6 @@ class CLASSIFIER:
                 batch_input, batch_label = self.next_batch(self.batch_size) 
                 self.input.copy_(batch_input)
                 self.label.copy_(batch_label)
-                self.optimizer.zero_grad()
                    
                 # inputv = Variable(self.input)
                 # labelv = Variable(self.label)

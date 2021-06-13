@@ -33,6 +33,7 @@ logger= init_loggers(opt)
 logger.info(f"Random Seed: {opt['manual_seed']}")
 random.seed(opt['manual_seed'])
 torch.manual_seed(opt['manual_seed'])
+cuda = False
 if torch.cuda.is_available():
     cuda = True
     torch.cuda.manual_seed_all(opt['manual_seed'])
@@ -147,7 +148,7 @@ def calc_gradient_penalty(netD,real_data, fake_data, input_att):
     if cuda:
         interpolates = interpolates.cuda()
     # interpolates = Variable(interpolates, requires_grad=True)
-    interpolates = interpolates
+    interpolates.requires_grad_(True)
     # disc_interpolates = netD(interpolates, Variable(input_att))
     disc_interpolates = netD(interpolates, input_att)
     ones = torch.ones(disc_interpolates.size())
@@ -233,9 +234,10 @@ for epoch in range(0,opt["train"]["num_epoch"]):
                 optimizerD.step()
 
             gp_sum /= (opt["network"]["gan"]["gamma_d"]*opt["network"]["gan"]["lambda"]*opt["network"]["gan"]["critic_iter"])
-            if (gp_sum > 1.05).sum() > 0:
+            # import pdb; pdb.set_trace()
+            if gp_sum > 1.05:
                 opt["network"]["gan"]["lambda"] *= 1.1
-            elif (gp_sum < 1.001).sum() > 0:
+            elif gp_sum < 1.001:
                 opt["network"]["gan"]["lambda"] /= 1.1
 
             #############Generator training ##############
