@@ -101,9 +101,6 @@ class CLASSIFIER:
                 batch_input, batch_label = self.next_batch(self.batch_size) 
                 self.input.copy_(batch_input)
                 self.label.copy_(batch_label)
-                   
-                # inputv = Variable(self.input)
-                # labelv = Variable(self.label)
                 inputv = self.input
                 labelv = self.label
                 output = self.model(inputv)
