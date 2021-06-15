@@ -309,7 +309,7 @@ for epoch in range(0,num_epoch):
         # Concatenate real seen features with synthesized unseen features
         train_X = torch.cat((data.train_feature, syn_feature), 0)
         train_Y = torch.cat((data.train_label, syn_label), 0)
-        nclass = 200 # define at top
+        nclass = num_class
         # Train GZSL classifier
         gzsl_cls = classifier.CLASSIFIER(train_X, train_Y, data, nclass, cuda, lr_classifier, 0.5, \
                 25, syn_num, generalized=True, netDec=netDec, dec_size=att_size, dec_hidden_size=4096)
