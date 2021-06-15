@@ -4,16 +4,15 @@ import torch.nn as nn
 import torch.optim as optim
 import datasets.image_util as util
 import copy
-import pdb
 
 class CLASSIFIER:
     # train_Y is interger 
     def __init__(self, _train_X, _train_Y, data_loader, _nclass, _cuda, _lr=0.001, _beta1=0.5, _nepoch=20, _batch_size=100, generalized=True, netDec=None, dec_size=4096, dec_hidden_size=4096):
-        self.train_X =  _train_X # Concatenate real seen features with synthesized unseen features
-        self.train_Y = _train_Y # Concatenate real seen labels with synthesized unseen labels
-        self.test_seen_feature = data_loader.test_seen_feature
+        self.train_X =  _train_X.clone()
+        self.train_Y = _train_Y.clone()
+        self.test_seen_feature = data_loader.test_seen_feature.clone()
         self.test_seen_label = data_loader.test_seen_label 
-        self.test_unseen_feature = data_loader.test_unseen_feature
+        self.test_unseen_feature = data_loader.test_unseen_feature.clone()
         self.test_unseen_label = data_loader.test_unseen_label 
         self.seenclasses = data_loader.seenclasses
         self.unseenclasses = data_loader.unseenclasses
@@ -23,15 +22,17 @@ class CLASSIFIER:
         self.input_dim = _train_X.size(1)
         self.cuda = _cuda
         self.model =  LINEAR_LOGSOFTMAX_CLASSIFIER(self.input_dim, self.nclass)
-        self.netDec = netDec # trained SED
+        self.netDec = netDec
         assert not self.netDec.training, "Check model mode"
-        self.input_dim = self.input_dim + dec_size # need to check this
-        self.input_dim += dec_hidden_size # need to check this
-        self.model =  LINEAR_LOGSOFTMAX_CLASSIFIER(self.input_dim, self.nclass) # check this
-        with torch.no_grad():
-            self.train_X = self.compute_dec_out(self.train_X, self.input_dim)
-            self.test_unseen_feature = self.compute_dec_out(self.test_unseen_feature, self.input_dim)
-            self.test_seen_feature = self.compute_dec_out(self.test_seen_feature, self.input_dim)
+        if self.netDec:
+            self.netDec.eval()
+            self.input_dim = self.input_dim + dec_size
+            self.input_dim += dec_hidden_size
+            self.model =  LINEAR_LOGSOFTMAX_CLASSIFIER(self.input_dim, self.nclass)
+            with torch.no_grad():
+                self.train_X = self.compute_dec_out(self.train_X, self.input_dim)
+                self.test_unseen_feature = self.compute_dec_out(self.test_unseen_feature, self.input_dim)
+                self.test_seen_feature = self.compute_dec_out(self.test_seen_feature, self.input_dim)
         self.model.apply(util.weights_init)
         self.criterion = nn.NLLLoss()
         self.input = torch.FloatTensor(_batch_size, self.input_dim) 
@@ -56,7 +57,7 @@ class CLASSIFIER:
     def fit_zsl(self):
         best_acc = 0
         mean_loss = 0
-        last_loss_epoch = 1e8 
+        last_loss_epoch = 1e8
         self.model.train()
         best_model = copy.deepcopy(self.model.state_dict())
         for epoch in range(self.nepoch):
@@ -65,11 +66,10 @@ class CLASSIFIER:
                 batch_input, batch_label = self.next_batch(self.batch_size) 
                 self.input.copy_(batch_input)
                 self.label.copy_(batch_label)
-                   
-                # inputv = Variable(self.input)
-                # labelv = Variable(self.label)
+
                 inputv = self.input
                 labelv = self.label
+
                 output = self.model(inputv)
                 loss = self.criterion(output, labelv)
                 mean_loss += loss.item()
@@ -79,7 +79,7 @@ class CLASSIFIER:
             self.model.eval()
             with torch.no_grad():
                 acc = self.val(self.test_unseen_feature, self.test_unseen_label, self.unseenclasses)
-                #print('acc %.4f' % (acc))
+            #print('acc %.4f' % (acc))
             self.model.train()
             if acc > best_acc:
                 best_acc = acc
@@ -100,6 +100,7 @@ class CLASSIFIER:
                 batch_input, batch_label = self.next_batch(self.batch_size) 
                 self.input.copy_(batch_input)
                 self.label.copy_(batch_label)
+
                 inputv = self.input
                 labelv = self.label
                 output = self.model(inputv)
@@ -112,8 +113,8 @@ class CLASSIFIER:
             with torch.no_grad():
                 acc_seen = self.val_gzsl(self.test_seen_feature, self.test_seen_label, self.seenclasses)
                 acc_unseen = self.val_gzsl(self.test_unseen_feature, self.test_unseen_label, self.unseenclasses)
-            self.model.train()  
-            H = 2*acc_seen*acc_unseen / (acc_seen+acc_unseen)
+                H = 2*acc_seen*acc_unseen / (acc_seen+acc_unseen)
+            self.model.train()
             if H > best_H:
                 best_seen = acc_seen
                 best_unseen = acc_unseen
@@ -164,10 +165,9 @@ class CLASSIFIER:
         for i in range(0, ntest, self.batch_size):
             end = min(ntest, start+self.batch_size)
             inputX = test_X[start:end]
-            
             if self.cuda:
-                # inputX = Variable(test_X[start:end].cuda(), volatile=True)
                 inputX = inputX.cuda()
+
             output = self.model(inputX)  
             _, predicted_label[start:end] = torch.max(output.data, 1)
             start = end
@@ -191,10 +191,9 @@ class CLASSIFIER:
         for i in range(0, ntest, self.batch_size):
             end = min(ntest, start+self.batch_size)
             inputX = test_X[start:end]
-            
             if self.cuda:
-                # inputX = Variable(test_X[start:end].cuda(), volatile=True)
                 inputX = inputX.cuda()
+
             output = self.model(inputX) 
             _, predicted_label[start:end] = torch.max(output.data, 1)
             start = end
@@ -218,8 +217,8 @@ class CLASSIFIER:
             end = min(ntest, start+self.batch_size)
             inputX = test_X[start:end]
             if self.cuda:
-                # inputX = Variable(test_X[start:end].cuda(), volatile=True)
                 inputX = inputX.cuda()
+
             feat1 = self.netDec(inputX)
             feat2 = self.netDec.getLayersOutDet()
             new_test_X[start:end] = torch.cat([inputX,feat1,feat2],dim=1).data.cpu()

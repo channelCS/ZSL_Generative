@@ -1,3 +1,4 @@
+#author: akshitac8
 import torch
 import torch.nn as nn
 
@@ -19,7 +20,6 @@ class Encoder(nn.Module):
         super(Encoder,self).__init__()
         layer_sizes = opt["network"]["gan"]["layer_sizes"]
         latent_size = opt["network"]["gan"]["latent_dim"]
-        layer_sizes[0] += latent_size
         self.fc1=nn.Linear(layer_sizes[0], layer_sizes[-1])
         self.fc3=nn.Linear(layer_sizes[-1], latent_size*2)
         self.lrelu = nn.LeakyReLU(0.2, True)
