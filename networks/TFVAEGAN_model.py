@@ -1,7 +1,5 @@
-#author: akshitac8
 import torch
 import torch.nn as nn
-
 
 def weights_init(m):
     classname = m.__class__.__name__

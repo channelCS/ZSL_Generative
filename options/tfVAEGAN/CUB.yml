@@ -37,6 +37,7 @@ network:
     lr: 0.0001
     layer_sizes: [4096, 2048]
     recons_weight: 0.01
+    freeze: False
 
   classifier:
     lr: 0.001

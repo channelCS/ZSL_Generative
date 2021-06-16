@@ -1,5 +1,3 @@
-#author: akshitac8
-#tf-vaegan inductive
 from __future__ import print_function
 import random
 import torch
@@ -50,14 +48,13 @@ lr_classifier = opt["network"]["classifier"]["lr"]
 gzsl = opt["network"]["classifier"]["gzsl"]
 feedback_loop = opt["network"]["feedback"]["feedback_loop"]
 a2 = opt["network"]["feedback"]["a2"]
-freeze_dec =  False
-cuda = False
+freeze_dec =  opt["network"]["decoder"]["freeze"]
+cuda = torch.cuda.is_available()
 
 logger.info(f"Random Seed: {manual_seed}")
 random.seed(manual_seed)
 torch.manual_seed(manual_seed)
-if torch.cuda.is_available():
-    cuda = True
+if cuda:
     torch.cuda.manual_seed_all(manual_seed)
 cudnn.benchmark = True
 # load data
@@ -159,7 +156,7 @@ def calc_gradient_penalty(netD,real_data, fake_data, input_att,lambda_gan):
     interpolates = alpha * real_data + ((1 - alpha) * fake_data)
     if  cuda:
         interpolates = interpolates.cuda()
-    interpolates = interpolates.requires_grad_(True)
+    interpolates.requires_grad_(True)
     disc_interpolates = netD(interpolates, input_att)
     ones = torch.ones(disc_interpolates.size())
     if  cuda:
@@ -199,13 +196,11 @@ for epoch in range(0,num_epoch):
                     means, log_var = netE(input_res, input_att)
                     std = torch.exp(0.5 * log_var)
                     eps = torch.randn([batch_size, latent_dim]).cpu()
-                    # eps = Variable(eps.cuda())
                     if cuda:
                         eps = eps.cuda()
                     z = eps * std + means #torch.Size([64, 312])
                 else:
                     noise.normal_(0, 1)
-                    # z = Variable(noise)
                     z = noise
 
                 if loop == 1:

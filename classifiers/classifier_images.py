@@ -1,4 +1,3 @@
-#author: akshitac8
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -179,7 +178,7 @@ class CLASSIFIER:
         acc_per_class = 0
         for i in target_classes:
             idx = (test_label == i)
-            acc_per_class += torch.sum(test_label[idx]==predicted_label[idx]) / torch.sum(idx)
+            acc_per_class += torch.sum(test_label[idx]==predicted_label[idx]).item() / torch.sum(idx).item()
         acc_per_class /= target_classes.size(0)
         return acc_per_class 
 
@@ -205,7 +204,7 @@ class CLASSIFIER:
         acc_per_class = torch.FloatTensor(nclass).fill_(0)
         for i in range(nclass):
             idx = (test_label == i)
-            acc_per_class[i] = torch.sum(test_label[idx]==predicted_label[idx]) / torch.sum(idx)
+            acc_per_class[i] = torch.sum(test_label[idx]==predicted_label[idx]).item() / torch.sum(idx).item()
         return acc_per_class.mean() 
 
 
