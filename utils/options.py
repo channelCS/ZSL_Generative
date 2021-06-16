@@ -10,6 +10,7 @@ import yaml
 from collections import OrderedDict
 from os import path as osp
 
+
 def ordered_yaml():
     """
     Support OrderedDict for yaml.
@@ -36,6 +37,7 @@ def ordered_yaml():
     Loader.add_constructor(_mapping_tag, dict_constructor)
     return Loader, Dumper
 
+
 def parse(opt_path):
     """
     Parse option file.
@@ -48,12 +50,12 @@ def parse(opt_path):
     Returns:
         (dict): Options.
     """
-    with open(opt_path, mode='r') as f:
+    with open(opt_path, mode="r") as f:
         Loader, _ = ordered_yaml()
         opt = yaml.load(f, Loader=Loader)
 
-    experiments_root = osp.join('./logs', opt['name'])
-    opt['log'] = experiments_root
-#        opt['path']['visualization'] = osp.join(experiments_root, 'visualization')
+    experiments_root = osp.join("./logs", opt["name"])
+    opt["log"] = experiments_root
+    #        opt['path']['visualization'] = osp.join(experiments_root, 'visualization')
 
     return opt
