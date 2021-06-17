@@ -2,16 +2,21 @@ import logging
 import time
 import os
 
+
 def get_time_str():
-    return time.strftime('%Y%m%d_%H%M%S', time.localtime())
+    return time.strftime("%Y%m%d_%H%M%S", time.localtime())
+
 
 def init_loggers(opt):
-    log_file = os.path.join(opt['log'], f"train_{opt['name']}_{get_time_str()}.log")
-    logger = get_root_logger(logger_name='ZSl', log_level=logging.INFO, log_file=log_file)
+    log_file = os.path.join(opt["log"], f"train_{opt['name']}_{get_time_str()}.log")
+    logger = get_root_logger(
+        logger_name="ZSl", log_level=logging.INFO, log_file=log_file
+    )
 
     return logger
 
-def get_root_logger(logger_name='ZSl', log_level=logging.INFO, log_file=None):
+
+def get_root_logger(logger_name="ZSl", log_level=logging.INFO, log_file=None):
     """Get the root logger.
 
     The logger will be initialized if it has not been initialized. By default a
@@ -34,11 +39,11 @@ def get_root_logger(logger_name='ZSl', log_level=logging.INFO, log_file=None):
     if logger.hasHandlers():
         return logger
 
-    format_str = '%(asctime)s %(levelname)s: %(message)s'
+    format_str = "%(asctime)s %(levelname)s: %(message)s"
     logging.basicConfig(format=format_str, level=log_level)
 
     if log_file is not None:
-        file_handler = logging.FileHandler(log_file, 'w')
+        file_handler = logging.FileHandler(log_file, "w")
         file_handler.setFormatter(logging.Formatter(format_str))
         file_handler.setLevel(log_level)
         logger.addHandler(file_handler)

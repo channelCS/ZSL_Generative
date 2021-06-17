@@ -23,7 +23,7 @@ network:
     res_size: 2048
     att_size: 312
     latent_dim: 312
-    layer_sizes: [2048, 4096]
+    layer_sizes: [2360, 4096] # 2048 + latent_dim
     ndh: 4096
     ngh: 4096
     gamma_g: 10
@@ -37,6 +37,7 @@ network:
     lr: 0.0001
     layer_sizes: [4096, 2048]
     recons_weight: 0.01
+    freeze: False
 
   classifier:
     lr: 0.001
