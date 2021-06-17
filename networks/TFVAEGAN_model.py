@@ -1,52 +1,63 @@
 import torch
 import torch.nn as nn
 
+
 def weights_init(m):
     classname = m.__class__.__name__
-    if classname.find('Linear') != -1:
+    if classname.find("Linear") != -1:
         m.weight.data.normal_(0.0, 0.02)
         m.bias.data.fill_(0)
-    elif classname.find('BatchNorm') != -1:
+    elif classname.find("BatchNorm") != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
 
-#Encoder
-class Encoder(nn.Module):
 
+class tfVAEGAN:
+    def __init__(self, opt):
+        self.Encoder = Encoder
+        self.Generator = Generator
+        self.Discriminator_D1 = Discriminator_D1
+        self.Feedback = Feedback
+        self.AttDec = AttDec
+
+
+# Encoder
+class Encoder(nn.Module):
     def __init__(self, opt):
 
-        super(Encoder,self).__init__()
+        super(Encoder, self).__init__()
         layer_sizes = opt["network"]["gan"]["layer_sizes"]
         latent_size = opt["network"]["gan"]["latent_dim"]
-        self.fc1=nn.Linear(layer_sizes[0], layer_sizes[-1])
-        self.fc3=nn.Linear(layer_sizes[-1], latent_size*2)
+        self.fc1 = nn.Linear(layer_sizes[0], layer_sizes[-1])
+        self.fc3 = nn.Linear(layer_sizes[-1], latent_size * 2)
         self.lrelu = nn.LeakyReLU(0.2, True)
-        self.linear_means = nn.Linear(latent_size*2, latent_size)
-        self.linear_log_var = nn.Linear(latent_size*2, latent_size)
+        self.linear_means = nn.Linear(latent_size * 2, latent_size)
+        self.linear_log_var = nn.Linear(latent_size * 2, latent_size)
         self.apply(weights_init)
 
     def forward(self, x, c=None):
-        if c is not None: x = torch.cat((x, c), dim=-1)
+        if c is not None:
+            x = torch.cat((x, c), dim=-1)
         x = self.lrelu(self.fc1(x))
         x = self.lrelu(self.fc3(x))
         means = self.linear_means(x)
         log_vars = self.linear_log_var(x)
         return means, log_vars
 
-#Decoder/Generator
-class Generator(nn.Module):
 
+# Decoder/Generator
+class Generator(nn.Module):
     def __init__(self, opt):
 
-        super(Generator,self).__init__()
+        super(Generator, self).__init__()
 
         layer_sizes = opt["network"]["decoder"]["layer_sizes"]
-        latent_size=opt["network"]["gan"]["latent_dim"]
+        latent_size = opt["network"]["gan"]["latent_dim"]
         input_size = latent_size * 2
         self.fc1 = nn.Linear(input_size, layer_sizes[0])
         self.fc3 = nn.Linear(layer_sizes[0], layer_sizes[1])
         self.lrelu = nn.LeakyReLU(0.2, True)
-        self.sigmoid=nn.Sigmoid()
+        self.sigmoid = nn.Sigmoid()
         self.apply(weights_init)
 
     def _forward(self, z, c=None):
@@ -58,49 +69,60 @@ class Generator(nn.Module):
 
     def forward(self, z, a1=None, c=None, feedback_layers=None):
         if feedback_layers is None:
-            return self._forward(z,c)
+            return self._forward(z, c)
         else:
             z = torch.cat((z, c), dim=-1)
             x1 = self.lrelu(self.fc1(z))
-            feedback_out = x1 + a1*feedback_layers
+            feedback_out = x1 + a1 * feedback_layers
             x = self.sigmoid(self.fc3(feedback_out))
             return x
 
-#conditional discriminator for inductive
+
+# conditional discriminator for inductive
 class Discriminator_D1(nn.Module):
-    def __init__(self, opt): 
+    def __init__(self, opt):
         super(Discriminator_D1, self).__init__()
-        self.fc1 = nn.Linear(opt["network"]["gan"]["res_size"] + opt["network"]["gan"]["att_size"], opt["network"]["gan"]["ndh"])
+        self.fc1 = nn.Linear(
+            opt["network"]["gan"]["res_size"] + opt["network"]["gan"]["att_size"],
+            opt["network"]["gan"]["ndh"],
+        )
         self.fc2 = nn.Linear(opt["network"]["gan"]["ndh"], 1)
         self.lrelu = nn.LeakyReLU(0.2, True)
         self.apply(weights_init)
 
     def forward(self, x, att):
-        h = torch.cat((x, att), 1) 
+        h = torch.cat((x, att), 1)
         self.hidden = self.lrelu(self.fc1(h))
         h = self.fc2(self.hidden)
         return h
-        
-#Feedback Modules
+
+
+# Feedback Modules
 class Feedback(nn.Module):
-    def __init__(self,opt):
+    def __init__(self, opt):
         super(Feedback, self).__init__()
         self.fc1 = nn.Linear(opt["network"]["gan"]["ngh"], opt["network"]["gan"]["ngh"])
         self.fc2 = nn.Linear(opt["network"]["gan"]["ngh"], opt["network"]["gan"]["ngh"])
         self.lrelu = nn.LeakyReLU(0.2, True)
         self.apply(weights_init)
-    def forward(self,x):
+
+    def forward(self, x):
         self.x1 = self.lrelu(self.fc1(x))
         h = self.lrelu(self.fc2(self.x1))
         return h
 
 
 class AttDec(nn.Module):
-    def __init__(self, opt, att_size):
+    def __init__(self, opt):
         super(AttDec, self).__init__()
         self.embedSz = 0
-        self.fc1 = nn.Linear(opt["network"]["gan"]["res_size"] + self.embedSz, opt["network"]["gan"]["ngh"])
-        self.fc3 = nn.Linear(opt["network"]["gan"]["ngh"], att_size)
+        self.fc1 = nn.Linear(
+            opt["network"]["gan"]["res_size"] + self.embedSz,
+            opt["network"]["gan"]["ngh"],
+        )
+        self.fc3 = nn.Linear(
+            opt["network"]["gan"]["ngh"], opt["network"]["gan"]["att_size"]
+        )
         self.lrelu = nn.LeakyReLU(0.2, True)
         self.hidden = None
         self.sigmoid = None
@@ -109,17 +131,17 @@ class AttDec(nn.Module):
     def forward(self, feat, att=None):
         h = feat
         if self.embedSz > 0:
-            assert att is not None, 'Conditional Decoder requires attribute input'
-            h = torch.cat((feat,att),1)
+            assert att is not None, "Conditional Decoder requires attribute input"
+            h = torch.cat((feat, att), 1)
         self.hidden = self.lrelu(self.fc1(h))
         h = self.fc3(self.hidden)
-        if self.sigmoid is not None: 
+        if self.sigmoid is not None:
             h = self.sigmoid(h)
         else:
-            h = h/h.pow(2).sum(1).sqrt().unsqueeze(1).expand(h.size(0),h.size(1))
+            h = h / h.pow(2).sum(1).sqrt().unsqueeze(1).expand(h.size(0), h.size(1))
         self.out = h
         return h
 
     def getLayersOutDet(self):
-        #used at synthesis time and feature transformation
+        # used at synthesis time and feature transformation
         return self.hidden.detach()
