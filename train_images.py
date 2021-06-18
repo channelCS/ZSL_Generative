@@ -6,7 +6,7 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 
 # import functions
-import networks.TFVAEGAN_model as model
+from networks import create_model
 import datasets.image_util as util
 import classifiers.classifier_images as classifier
 from utils.logger import init_loggers, get_time_str
@@ -78,6 +78,7 @@ cudnn.benchmark = True
 data = util.DATA_LOADER(opt)
 logger.info(f"# of training samples: {data.ntrain}")
 
+model = create_model(opt)
 netE = model.Encoder(opt)
 netG = model.Generator(opt)
 netD = model.Discriminator_D1(opt)
@@ -94,7 +95,7 @@ print(netDec)
 ###########
 # Init Tensors
 input_res = torch.FloatTensor(batch_size, res_size)
-input_att = torch.FloatTensor(batch_size, att_size)  # attSize class-embedding size
+input_att = torch.FloatTensor(batch_size, att_size)  # att_size class-embedding size
 noise = torch.FloatTensor(batch_size, att_size)
 one = torch.tensor(1, dtype=torch.float32)
 mone = one * -1

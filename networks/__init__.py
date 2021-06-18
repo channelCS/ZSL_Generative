@@ -1,22 +1,5 @@
 import importlib
-from os import path as osp
-
 from utils.logger import get_root_logger
-from utils.options import scandir
-
-# automatically scan and import model modules
-# scan all the files under the 'models' folder and collect files ending with
-# '_model.py'
-model_folder = osp.dirname(osp.abspath(__file__))
-model_filenames = [
-    osp.splitext(osp.basename(v))[0]
-    for v in scandir(model_folder)
-    if v.endswith("_model.py")
-]
-# import all the model modules
-_model_modules = [
-    importlib.import_module(f"networks.{file_name}") for file_name in model_filenames
-]
 
 
 def create_model(opt):
@@ -26,12 +9,10 @@ def create_model(opt):
             model_type (str): Model type.
     """
     model_type = opt["model_type"]
+    module = importlib.import_module(f"networks.{model_type}_model")
 
     # dynamic instantiation
-    for module in _model_modules:
-        model_cls = getattr(module, model_type, None)
-        if model_cls is not None:
-            break
+    model_cls = getattr(module, model_type, None)
     if model_cls is None:
         raise ValueError(f"Model {model_type} is not found.")
 
