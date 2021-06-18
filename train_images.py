@@ -6,10 +6,10 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 
 # import functions
-import networks.TFVAEGAN_model as model
+from networks import create_model
 import datasets.image_util as util
 import classifiers.classifier_images as classifier
-from utils.logger import init_loggers
+from utils.logger import init_loggers, get_time_str
 from utils.options import parse
 import argparse
 import os
@@ -33,6 +33,17 @@ os.makedirs(opt["log"], exist_ok=True)
 
 # initialize loggers and variables
 logger = init_loggers(opt)
+
+if opt["wandb"]:
+    # wandb initalization
+    import wandb
+
+    logger.info("wandb initalization of project")
+    run = wandb.init(
+        project="ZSL_Generative", name=f"{opt['name']}_{get_time_str()}", reinit=True
+    )
+    wandb.config.update(opt)
+
 dataset_name = opt["datasets"]["name"]
 manual_seed = opt["manual_seed"]
 att_size = opt["network"]["gan"]["att_size"]
@@ -54,6 +65,7 @@ gzsl = opt["network"]["classifier"]["gzsl"]
 feedback_loop = opt["network"]["feedback"]["feedback_loop"]
 a2 = opt["network"]["feedback"]["a2"]
 freeze_dec = opt["network"]["decoder"]["freeze"]
+wandb_flag = opt["wandb"]
 cuda = torch.cuda.is_available()
 
 logger.info(f"Random Seed: {manual_seed}")
@@ -66,12 +78,13 @@ cudnn.benchmark = True
 data = util.DATA_LOADER(opt)
 logger.info(f"# of training samples: {data.ntrain}")
 
-netE = model.Encoder(opt)
-netG = model.Generator(opt)
-netD = model.Discriminator_D1(opt)
+model = create_model(opt)
+netE = model.Encoder
+netG = model.Generator
+netD = model.Discriminator_D1
 # Init models: Feedback module, auxillary module
-netF = model.Feedback(opt)
-netDec = model.AttDec(opt, att_size)
+netF = model.Feedback
+netDec = model.AttDec
 
 print(netE)
 print(netG)
@@ -82,7 +95,7 @@ print(netDec)
 ###########
 # Init Tensors
 input_res = torch.FloatTensor(batch_size, res_size)
-input_att = torch.FloatTensor(batch_size, att_size)  # attSize class-embedding size
+input_att = torch.FloatTensor(batch_size, att_size)  # att_size class-embedding size
 noise = torch.FloatTensor(batch_size, att_size)
 one = torch.tensor(1, dtype=torch.float32)
 mone = one * -1
@@ -98,6 +111,13 @@ if cuda:
     noise, input_att = noise.cuda(), input_att.cuda()
     one = one.cuda()
     mone = mone.cuda()
+
+if wandb_flag:
+    wandb.watch(netE)
+    wandb.watch(netG)
+    wandb.watch(netD)
+    wandb.watch(netF)
+    wandb.watch(netDec)
 
 
 def loss_fn(recon_x, x, mean, log_var):
@@ -340,6 +360,12 @@ for epoch in range(0, num_epoch):
         )
     )
 
+    if wandb_flag:
+        wandb.log(
+            {"Discriminator Loss": D_cost.item(), "Generative Loss": G_cost.item()},
+            step=epoch,
+        )
+
     netG.eval()
     netDec.eval()
     netF.eval()
@@ -383,6 +409,16 @@ for epoch in range(0, num_epoch):
             % (gzsl_cls.acc_seen, gzsl_cls.acc_unseen, gzsl_cls.H)
         )
 
+        if wandb_flag:
+            wandb.log(
+                {
+                    "GZSL seen accuracy": gzsl_cls.acc_seen,
+                    "GZSL unseen accuracy": gzsl_cls.acc_unseen,
+                    "Harmonic Mean": gzsl_cls.H,
+                },
+                step=epoch,
+            )
+
     # Zero-shot learning
     # Train ZSL classifier
     zsl_cls = classifier.CLASSIFIER(
@@ -405,6 +441,10 @@ for epoch in range(0, num_epoch):
         best_zsl_acc = acc
 
     logger.info("ZSL: unseen accuracy=%.4f" % (acc))
+
+    if wandb_flag:
+        wandb.log({"ZSL unseen accuracy": acc}, step=epoch)
+
     # reset G to training mode
     netG.train()
     netDec.train()
@@ -419,3 +459,6 @@ if gzsl:
     logger.info(f"the best GZSL seen accuracy is {best_acc_seen}")
     logger.info(f"the best GZSL unseen accuracy is {best_acc_unseen}")
     logger.info(f"the best GZSL H is {best_gzsl_acc}")
+
+if wandb_flag:
+    run.finish()

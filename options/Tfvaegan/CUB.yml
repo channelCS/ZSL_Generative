@@ -1,7 +1,8 @@
-name: tfVAEGAN_CUB
-model_type: tfVAEGAN
+name: Tfvaegan_CUB
+model_type: Tfvaegan
 num_gpu: 1
 manual_seed: 3483
+wandb: False
 
 datasets:
   name: CUB
