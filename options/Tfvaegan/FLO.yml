@@ -1,4 +1,4 @@
-name: tfVAEGAN_FLO
+name: Tfvaegan_FLO
 model_type: Tfvaegan
 num_gpu: 1
 manual_seed: 806

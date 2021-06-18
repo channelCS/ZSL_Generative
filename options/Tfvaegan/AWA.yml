@@ -1,4 +1,4 @@
-name: tfVAEGAN_AWA
+name: Tfvaegan_AWA
 model_type: Tfvaegan
 num_gpu: 1
 manual_seed: 9182

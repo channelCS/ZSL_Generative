@@ -1,4 +1,4 @@
-name: tfVAEGAN_SUN
+name: Tfvaegan_SUN
 model_type: Tfvaegan
 num_gpu: 1
 manual_seed: 4115
