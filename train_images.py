@@ -79,12 +79,12 @@ data = util.DATA_LOADER(opt)
 logger.info(f"# of training samples: {data.ntrain}")
 
 model = create_model(opt)
-netE = model.Encoder(opt)
-netG = model.Generator(opt)
-netD = model.Discriminator_D1(opt)
+netE = model.Encoder
+netG = model.Generator
+netD = model.Discriminator_D1
 # Init models: Feedback module, auxillary module
-netF = model.Feedback(opt)
-netDec = model.AttDec(opt)
+netF = model.Feedback
+netDec = model.AttDec
 
 print(netE)
 print(netG)

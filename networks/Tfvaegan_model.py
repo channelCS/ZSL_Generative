@@ -12,13 +12,13 @@ def weights_init(m):
         m.bias.data.fill_(0)
 
 
-class tfVAEGAN:
+class Tfvaegan:
     def __init__(self, opt):
-        self.Encoder = Encoder
-        self.Generator = Generator
-        self.Discriminator_D1 = Discriminator_D1
-        self.Feedback = Feedback
-        self.AttDec = AttDec
+        self.Encoder = Encoder(opt)
+        self.Generator = Generator(opt)
+        self.Discriminator_D1 = Discriminator_D1(opt)
+        self.Feedback = Feedback(opt)
+        self.AttDec = AttDec(opt)
 
 
 # Encoder

@@ -1,51 +1,51 @@
-name: tfVAEGAN_AWA
-model_type: tfVAEGAN
+name: tfVAEGAN_FLO
+model_type: Tfvaegan
 num_gpu: 1
-manual_seed: 9182
+manual_seed: 806
 wandb: False
 
 datasets:
-  name: AWA
+  name: FLO
   type: ZSLDataset
   dataroot: datasets
 
 train:
   num_workers: 8
   batch_size: 64
-  num_epoch: 120
+  num_epoch: 500
   betas: [0.5, 0.999]
 
 network:
   gan:
-    lr: 0.00001
+    lr: 0.0001
     image_embedding: res101
     class_embedding: att
-    syn_num: 1800
+    syn_num: 1200
     res_size: 2048
-    att_size: 85
-    latent_dim: 85
-    layer_sizes: [2133, 4096] # 2048 + latent_dim
+    att_size: 1024
+    latent_dim: 1024
+    layer_sizes: [3072, 4096] # 2048 + latent_dim
     ndh: 4096
     ngh: 4096
     gamma_g: 10
     gamma_d: 10
-    num_class: 50
+    num_class: 102
     lambda: 10
     critic_iter: 5
-    noise: True
+    noise: False
 
   decoder:
     lr: 0.0001
     layer_sizes: [4096, 2048]
-    recons_weight: 0.1
-    freeze: True
+    recons_weight: 0.01
+    freeze: False
 
   classifier:
     lr: 0.001
     gzsl: True
 
   feedback:
-    lr: 0.0001
-    a1: 0.01
-    a2: 0.01
+    lr: 0.00001
+    a1: 0.5
+    a2: 0.5
     feedback_loop: 2
