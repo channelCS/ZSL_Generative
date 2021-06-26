@@ -13,9 +13,9 @@ pip install -r requirements.txt
 ```
 
 # Data preparation
-Download CUB, AWA, FLO and SUN features using `downlaod.sh` inside datasets folder.
+Download CUB, AWA, FLO and SUN features using `download.sh` inside datasets folder.
 ```
-sh download.sh
+cd datasets; sh download.sh; cd ..
 ```
 
 # Training and Evaluation
