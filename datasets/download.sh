@@ -14,6 +14,7 @@ echo "==> Unzipping AWA dataset zip file"
 unzip AWA2-20210614T103407Z-001.zip
 echo "==> Removing AWA dataset zip file"
 rm AWA2-20210614T103407Z-001.zip
+mv AWA2/ AWA/
 
 # FLO dataset
 echo "==> Downoading FLO dataset zip file"
