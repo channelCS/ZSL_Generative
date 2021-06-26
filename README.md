@@ -13,7 +13,7 @@ pip install -r requirements.txt
 ```
 
 # Data preparation
-For downloading `v1` version of CUB, AWA, FLO and SUN features use `download.sh` inside datasets/v1 folder.
+For downloading `v1` version of CUB, AWA2, FLO and SUN features use `download.sh` inside datasets/v1 folder.
 ```
 cd datasets/v1; sh download.sh; cd ../../
 ```
@@ -28,13 +28,13 @@ cd datasets/v2; sh download.sh; cd ../../
 To train and evaluate ZSL and GZSL models on `v1` version of CUB, AWA, FLO and SUN, please run:
 ```
 CUB: python train_images.py -opt options/Tfvaegan/CUB.yml
-AWA: python train_images.py -opt options/Tfvaegan/AWA.yml
+AWA: python train_images.py -opt options/Tfvaegan/AWA2.yml
 FLO: python train_images.py -opt options/Tfvaegan/FLO.yml
 SUN: python train_images.py -opt options/Tfvaegan/SUN.yml
 
 ```
 
-To train and evaluate ZSL and GZSL models on `v2` version of CUB, AWA, and SUN, edit configuration file.
+To train and evaluate ZSL and GZSL models on `v2` version of CUB, AWA2, and SUN, edit configuration file.
 ```yml
 version: v2
 ```

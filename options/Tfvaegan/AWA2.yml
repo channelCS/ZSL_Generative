@@ -1,11 +1,11 @@
-name: Tfvaegan_AWA
+name: Tfvaegan_AWA2
 model_type: Tfvaegan
 num_gpu: 1
 manual_seed: 9182
 wandb: False
 
 datasets:
-  name: AWA
+  name: AWA2
   version: v1
   type: ZSLDataset
   dataroot: datasets

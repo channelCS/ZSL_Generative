@@ -8,11 +8,11 @@ echo "==> Removing CUB dataset zip file"
 rm CUB-20210425T113813Z-001.zip
 
 # AWA dataset
-echo "==> Downoading AWA dataset zip file"
+echo "==> Downoading AWA2 dataset zip file"
 gdown --id 1FEJWB5goZEQv4pTAMrJTRzJ-RPpBirzk
-echo "==> Unzipping AWA dataset zip file"
+echo "==> Unzipping AWA2 dataset zip file"
 unzip AWA2-20210614T103407Z-001.zip
-echo "==> Removing AWA dataset zip file"
+echo "==> Removing AWA2 dataset zip file"
 rm AWA2-20210614T103407Z-001.zip
 
 # FLO dataset
