@@ -6,6 +6,7 @@ wandb: False
 
 datasets:
   name: AWA
+  version: v1
   type: ZSLDataset
   dataroot: datasets
 
