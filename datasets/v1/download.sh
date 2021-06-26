@@ -7,7 +7,7 @@ unzip CUB-20210425T113813Z-001.zip
 echo "==> Removing CUB dataset zip file"
 rm CUB-20210425T113813Z-001.zip
 
-# AWA dataset
+# AWA2 dataset
 echo "==> Downoading AWA2 dataset zip file"
 gdown --id 1FEJWB5goZEQv4pTAMrJTRzJ-RPpBirzk
 echo "==> Unzipping AWA2 dataset zip file"

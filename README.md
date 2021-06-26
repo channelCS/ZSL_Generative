@@ -18,17 +18,17 @@ For downloading `v1` version of CUB, AWA2, FLO and SUN features use `download.sh
 cd datasets/v1; sh download.sh; cd ../../
 ```
 
-For downloading `v2` version of CUB, AWA, and SUN features use `download.sh` inside datasets/v2 folder.
+For downloading `v2` version of CUB, AWA2, and SUN features use `download.sh` inside datasets/v2 folder.
 ```
 cd datasets/v2; sh download.sh; cd ../../
 ```
 
 # Training and Evaluation
 ## Zero-Shot Image Classification
-To train and evaluate ZSL and GZSL models on `v1` version of CUB, AWA, FLO and SUN, please run:
+To train and evaluate ZSL and GZSL models on `v1` version of CUB, AWA2, FLO and SUN, please run:
 ```
 CUB: python train_images.py -opt options/Tfvaegan/CUB.yml
-AWA: python train_images.py -opt options/Tfvaegan/AWA2.yml
+AWA2: python train_images.py -opt options/Tfvaegan/AWA2.yml
 FLO: python train_images.py -opt options/Tfvaegan/FLO.yml
 SUN: python train_images.py -opt options/Tfvaegan/SUN.yml
 
