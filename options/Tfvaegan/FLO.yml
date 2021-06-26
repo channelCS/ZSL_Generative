@@ -6,6 +6,7 @@ wandb: False
 
 datasets:
   name: FLO
+  version: v1
   type: ZSLDataset
   dataroot: datasets
 
