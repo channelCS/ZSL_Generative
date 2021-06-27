@@ -13,6 +13,8 @@ from utils.logger import init_loggers, get_time_str
 from utils.options import parse
 import argparse
 import os
+import time
+import datetime
 
 
 def parse_options():
@@ -211,6 +213,7 @@ def calc_gradient_penalty(netD, real_data, fake_data, input_att, lambda_gan):
 
 best_gzsl_acc = 0
 best_zsl_acc = 0
+start_time = time.time()
 for epoch in range(0, num_epoch):
     for loop in range(0, feedback_loop):
         for i in range(0, data.ntrain, batch_size):
@@ -450,7 +453,8 @@ for epoch in range(0, num_epoch):
     netDec.train()
     netF.train()
 
-logger.info("End of training.")
+consumed_time = str(datetime.timedelta(seconds=int(time.time() - start_time)))
+logger.info(f"End of training. Time consumed: {consumed_time}")
 
 logger.info(f"Dataset {dataset_name}")
 logger.info(f"the best ZSL unseen accuracy is {best_zsl_acc}")

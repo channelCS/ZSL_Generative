@@ -33,6 +33,8 @@ class DATA_LOADER(object):
         matcontent = sio.loadmat(
             opt["datasets"]["dataroot"]
             + "/"
+            + opt["datasets"]["version"]
+            + "/"
             + opt["datasets"]["name"]
             + "/"
             + opt["network"]["gan"]["image_embedding"]
@@ -42,6 +44,8 @@ class DATA_LOADER(object):
         label = matcontent["labels"].astype(int).squeeze() - 1
         matcontent = sio.loadmat(
             opt["datasets"]["dataroot"]
+            + "/"
+            + opt["datasets"]["version"]
             + "/"
             + opt["datasets"]["name"]
             + "/"
