@@ -18,7 +18,8 @@ For downloading `v1` version of CUB, AWA2, FLO and SUN features use `download.sh
 cd datasets/v1; sh download.sh; cd ../../
 ```
 
-For downloading `v2` version of CUB, AWA2, and SUN features use `download.sh` inside datasets/v2 folder.
+For downloading `v2` version of CUB, AWA2, and SUN features use `download.sh` inside datasets/v2 folder.  
+**[Note]:** `v2` version was recently released to fix a test data leaking bug.
 ```
 cd datasets/v2; sh download.sh; cd ../../
 ```
