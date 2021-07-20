@@ -23,7 +23,7 @@ cd datasets; sh download.sh; cd ../
 To train and evaluate ZSL and GZSL models on CUB, AWA2, FLO and SUN, please run:
 ```
 CUB: python train_images.py -opt options/Tfvaegan/CUB.yml
-AWA: python train_images.py -opt options/Tfvaegan/AWA2.yml
+AWA2: python train_images.py -opt options/Tfvaegan/AWA2.yml
 FLO: python train_images.py -opt options/Tfvaegan/FLO.yml
 SUN: python train_images.py -opt options/Tfvaegan/SUN.yml
 
@@ -39,10 +39,9 @@ link: https://drive.google.com/drive/folders/13-eyljOmGwVRUzfMZIf_19HmCj1yShf1?u
 To train and evaluate ZSL and GZSL models for the finetune inductive setting on CUB, AWA2, FLO and SUN, please run:
 ```
 CUB: python train_images.py -opt options/Tfvaegan/CUB_ft.yml
-AWA: python train_images.py -opt options/Tfvaegan/AWA2_ft.yml
+AWA2: python train_images.py -opt options/Tfvaegan/AWA2_ft.yml
 FLO: python train_images.py -opt options/Tfvaegan/FLO_ft.yml
 SUN: python train_images.py -opt options/Tfvaegan/SUN_ft.yml
-
 ```
 
 # Wandb Logger
