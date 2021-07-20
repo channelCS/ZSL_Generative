@@ -6,6 +6,7 @@ wandb: False
 
 datasets:
   name: SUN
+  version: v1
   type: ZSLDataset
   dataroot: datasets
 
