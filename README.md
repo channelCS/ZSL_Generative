@@ -13,19 +13,14 @@ pip install -r requirements.txt
 ```
 
 # Data preparation
-For downloading `v1` version of CUB, AWA2, FLO and SUN features use `download.sh` inside datasets/v1 folder.
+Download CUB, AWA2, FLO and SUN features using `downlaod.sh` inside datasets folder.
 ```
-cd datasets/v1; sh download.sh; cd ../../
-```
-
-For downloading `v2` version of CUB, AWA2, and SUN features use `download.sh` inside datasets/v2 folder.
-```
-cd datasets/v2; sh download.sh; cd ../../
+cd datasets; sh download.sh; cd ../
 ```
 
 # Training and Evaluation
 ## Zero-Shot Image Classification
-To train and evaluate ZSL and GZSL models on `v1` version of CUB, AWA2, FLO and SUN, please run:
+To train and evaluate ZSL and GZSL models on CUB, AWA2, FLO and SUN, please run:
 ```
 CUB: python train_images.py -opt options/Tfvaegan/CUB.yml
 AWA2: python train_images.py -opt options/Tfvaegan/AWA2.yml
@@ -33,11 +28,22 @@ FLO: python train_images.py -opt options/Tfvaegan/FLO.yml
 SUN: python train_images.py -opt options/Tfvaegan/SUN.yml
 
 ```
+# Finetuning Inductive
+Download finetuned weights for the CUB, AWA2, FLO and SUN features from the drive link shared below.
 
-To train and evaluate ZSL and GZSL models on `v2` version of CUB, AWA2, and SUN, edit configuration file.
-```yml
-version: v2
 ```
+link: https://drive.google.com/drive/folders/13-eyljOmGwVRUzfMZIf_19HmCj1yShf1?usp=sharing
+```
+
+# Training and Evaluation
+To train and evaluate ZSL and GZSL models for the finetune inductive setting on CUB, AWA2, FLO and SUN, please run:
+```
+CUB: python train_images.py -opt options/Tfvaegan/CUB_ft.yml
+AWA2: python train_images.py -opt options/Tfvaegan/AWA2_ft.yml
+FLO: python train_images.py -opt options/Tfvaegan/FLO_ft.yml
+SUN: python train_images.py -opt options/Tfvaegan/SUN_ft.yml
+```
+
 # Wandb Logger
 
 [wandb](https://www.wandb.com/) can be viewed as a cloud version of tensorboard. One can easily view training processes and curves in wandb.  

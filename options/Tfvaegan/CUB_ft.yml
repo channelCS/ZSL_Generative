@@ -2,7 +2,7 @@ name: Tfvaegan_CUB
 model_type: Tfvaegan
 num_gpu: 1
 manual_seed: 3483
-wandb: False
+wandb: True
 
 datasets:
   name: CUB
@@ -18,7 +18,7 @@ train:
 network:
   gan:
     lr: 0.0001
-    image_embedding: res101
+    image_embedding: res101_ft
     class_embedding: att
     syn_num: 300
     res_size: 2048
